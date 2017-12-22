@@ -2974,10 +2974,99 @@ void suspend_stratum(struct pool *pool)
     mutex_unlock(&pool->stratum_lock);
 }
 
+
+#define STRATUM_VERSION_ROLLING "version-rolling"
+#define STRATUM_VERSION_ROLLING_LEN (sizeof(STRATUM_VERSION_ROLLING) - 1)
+
+/**
+ * Configures stratum mining based on connected hardware capabilities
+ * (version rolling etc.)
+ *
+ * Sample communication
+ * Request:
+ * {"id": 1, "method": "mining.configure", "params": [ ["version-rolling", "sp-telemetry"], { "version-rolling.bit-count": 2, "version-rolling.mask": "ffffffff" }]}\n
+ * Response:
+ * {"id": 1, "result": { "version-rolling": True, "sp-telemetry": True }, "error": null}\n
+ *
+ * @param pool
+ *
+ *
+ * @return
+ */
+static bool configure_stratum_mining(struct pool *pool)
+{
+    char s[RBUFSIZE];
+    char *response_str = NULL;
+    bool config_status = false;
+    const char *key;
+    json_t *response, *value, *res_val, *err_val;
+    json_error_t err;
+
+    /* TODO JCA: read version rolling bits and mask from the hardware driver
+     * or pool parameters? */
+    snprintf(s, RBUFSIZE,
+             "{\"id\": %d, \"method\": \"mining.configure\", \"params\": "
+             "[[\""STRATUM_VERSION_ROLLING"\"], "
+                                          "{\""STRATUM_VERSION_ROLLING".bit-count\": %d, "
+                                                                      "\""STRATUM_VERSION_ROLLING".mask\": \"%x\"}]}",
+             swork_id++, 2, 0xffffffff);
+
+    if (__stratum_send(pool, s, strlen(s)) != SEND_OK) {
+        applog(LOG_DEBUG, "Failed to send mining.configure");
+        goto out;
+    }
+    if (!socket_full(pool, DEFAULT_SOCKWAIT)) {
+        applog(LOG_DEBUG, "Timed out waiting for response in %s", __FUNCTION__);
+        goto out;
+    }
+    response_str = recv_line(pool);
+    if (!response_str)
+        goto out;
+
+    response = JSON_LOADS(response_str, &err);
+    free(response_str);
+
+    res_val = json_object_get(response, "result");
+    err_val = json_object_get(response, "error");
+
+    if (!res_val || json_is_null(res_val) ||
+        (err_val && !json_is_null(err_val))) {
+        char *ss;
+
+        if (err_val)
+            ss = json_dumps(err_val, JSON_INDENT(3));
+        else
+            ss = strdup("(unknown reason)");
+
+        applog(LOG_INFO, "JSON-RPC decode failed: %s", ss);
+
+        free(ss);
+
+        goto json_response_error;
+    }
+    json_object_foreach(res_val, key, value)
+    {
+        if (!strcasecmp(key, STRATUM_VERSION_ROLLING) &&
+            strlen(key) == STRATUM_VERSION_ROLLING_LEN) {
+            config_status = json_boolean_value(value);
+            continue;
+        } else {
+            applog(LOG_ERR, "JSON-RPC unexpected mining.configure value: %s",
+                   key);
+        }
+    }
+
+  json_response_error:
+    json_decref(response);
+
+  out:
+    return config_status;
+}
+
 bool initiate_stratum(struct pool *pool)
 {
-    bool ret = false, recvd = false, noresume = false, sockd = false;
-    char s[RBUFSIZE], *sret = NULL, *nonce1, *sessionid;
+    bool ret = false, recvd = false, noresume = false, sockd = false, notification_received = false;
+    char s[RBUFSIZE], *sret = NULL, *nonce1, *sessionid, *tmp;
     json_t *val = NULL, *res_val, *err_val;
     json_error_t err;
     int n2size;
@@ -2991,10 +3080,16 @@ resend:
 
     sockd = true;
 
-    if (recvd)
-    {
-        /* Get rid of any crap lying around if we're resending */
+    /* Get rid of any crap lying around if we're resending */
+    if (recvd) {
         clear_sock(pool);
+    }
+	/* Attempt to configure stratum protocol feature set first. */
+	if (!configure_stratum_mining(pool)) {
+		goto out;
+	}
+
+	if (recvd) {
         sprintf(s, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": []}", swork_id++);
     }
     else
@@ -3017,11 +3112,16 @@ resend:
         goto out;
     }
 
+	/* Filter out all notifications and wait for the response */
+	notification_received = true;
+	while (notification_received) {
     sret = recv_line(pool);
     if (!sret)
         goto out;
-
     recvd = true;
+		/* Parse any notification including set_version_mask */
+		notification_received = parse_method(pool, sret);
+	}
 
     val = JSON_LOADS(sret, &err);
     free(sret);
