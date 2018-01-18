@@ -3078,6 +3078,8 @@ static bool configure_stratum_mining(struct pool *pool)
     char s[RBUFSIZE];
     char *response_str = NULL;
     bool config_status = false;
+    bool version_rolling_status = false;
+    bool version_mask_valid = false;
     const char *key;
     json_t *response, *value, *res_val, *err_val;
     json_error_t err;
@@ -3128,13 +3130,17 @@ static bool configure_stratum_mining(struct pool *pool)
     {
         if (!strcasecmp(key, STRATUM_VERSION_ROLLING) &&
             strlen(key) == STRATUM_VERSION_ROLLING_LEN) {
-            config_status = json_boolean_value(value);
-            continue;
-        } else {
-            applog(LOG_ERR, "JSON-RPC unexpected mining.configure value: %s",
-                   key);
+            version_rolling_status = json_boolean_value(value);
+        }
+        else if (!strcasecmp(key, STRATUM_VERSION_ROLLING ".mask")) {
+            version_mask_valid = decode_version_mask(pool, value);
+        }
+        else {
+            applog(LOG_ERR, "JSON-RPC unexpected mining.configure value: %s", key);
         }
     }
+    /* Valid configuration for now only requires enabled version rolling and valid bit mask */
+    config_status = version_rolling_status && version_mask_valid;
 
   json_response_error:
     json_decref(response);
