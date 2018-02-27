@@ -66,6 +66,20 @@ static inline int cnstrct_putc(struct construct_buf *cbuf, char x)
 }
 
 /**
+ * Query whether construct buffer encountered an overflow
+ *
+ * @param cbuf Initialized construct structure
+ *
+ * @returns 1 on overflow, 0 otherwise
+ *
+ * @see https://www.jstor.org/stable/453244?seq=1#page_scan_tab_contents
+ */
+static inline int cnstrct_has_overflown(struct construct_buf *cbuf)
+{
+	return !!cbuf->overflow;
+}
+
+/**
  * Get number of characters constructed in buffer
  *
  * @param cbuf Initialized construct structure
