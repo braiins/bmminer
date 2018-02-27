@@ -96,4 +96,9 @@ static inline size_t cnstrct_get_len(struct construct_buf *cbuf)
 int cnstrct_print_hex(struct construct_buf *cbuf, void *mem, int len);
 int cnstrct_json_quote(struct construct_buf *cbuf, char *buf, int len);
 
+static inline int cnstrct_json_quote_str(struct construct_buf *cbuf, char *str)
+{
+	return cnstrct_json_quote(cbuf, str, strlen(str));
+}
+
 #endif /* __CONSTRUCT_H__ */
