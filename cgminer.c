@@ -60,6 +60,7 @@ char *curly = ":D";
 #include "compat.h"
 #include "miner.h"
 #include "bench_block.h"
+#include "construct.h"
 
 #ifdef USE_BITMAIN
 #include "driver-bitmain.h"
