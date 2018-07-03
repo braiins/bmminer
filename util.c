@@ -2168,6 +2168,81 @@ static bool parse_extranonce(struct pool *pool, json_t *val)
 
 }
 
+/**
+ * Decodes version mask from json string
+ *
+ * @param pool
+ * @param version_mask_json
+ * @return true when the decoded mask is valid and supported by the hardware
+ */
+static bool decode_version_mask(struct pool *pool, json_t *version_mask_json)
+{
+    const char *version_mask_str;
+    unsigned long version_mask;
+    unsigned int i, j, bit_idx, component_idx;
+    unsigned long version_bit_components[VERSION_BITS_NUM];
+    unsigned long detect_bit_mask;
+    bool retval = true;
+
+    if (!version_mask_json) {
+        applog_hw(LOG_ERR, "Received empty version mask!");
+        retval = false;
+        goto invalid_version_mask;
+    }
+
+    version_mask_str = json_string_value(version_mask_json);
+
+    version_mask = strtol(version_mask_str, NULL, 16);
+    detect_bit_mask = 1;
+    bit_idx = 0;
+    component_idx = 0;
+
+    /* Scan the version mask and extract masks for individual bits to satisfy
+     * the number of version bits */
+    while ((bit_idx < (sizeof(version_mask) * 8)) && (component_idx < VERSION_BITS_NUM)) {
+        if (version_mask & detect_bit_mask) {
+            version_bit_components[component_idx++] = detect_bit_mask;
+        }
+        detect_bit_mask = detect_bit_mask << 1;
+        bit_idx++;
+    }
+
+    if (component_idx != VERSION_BITS_NUM) {
+        applog_hw(LOG_ERR, "Received version mask (0x%08lx) doesn't satisfy hardware requirement (detected %d bits, "
+                           "required %d bits)", version_mask, component_idx, VERSION_BITS_NUM);
+        retval = false;
+        goto invalid_version_mask;
+    }
+
+    /* Pre-generate all permutations of version bits */
+    for (i = 0; i < (1UL << VERSION_BITS_NUM); i++) {
+        n_version[i].bits = 0;
+        for (bit_idx = 0; bit_idx < (sizeof(i) * 8); bit_idx++) {
+            if (i & (1UL << bit_idx)) {
+                n_version[i].bits |= version_bit_components[bit_idx];
+            }
+        }
+        /* Update mask string used for mining.submit version_bits parameter */
+        sprintf(n_version[i].bits_str, "%08x", n_version[i].bits);
+    }
+
+  invalid_version_mask:
+    return retval;
+}
+
+/**
+ * Parses mining.set_version_mask message
+ *
+ * @param pool
+ * @param params - array of JSON parameters of mining.set_version_mask
+ * @return true when a valid mask has been parsed
+ */
+static bool parse_set_version_mask(struct pool *pool, json_t *params)
+{
+    /* Extract the first parameter and delegate further */
+    return decode_version_mask(pool, json_array_get(params, 0));
+}
+
 static void __suspend_stratum(struct pool *pool)
 {
     clear_sockbuf(pool);
@@ -2347,6 +2422,11 @@ bool parse_method(struct pool *pool, char *s)
             pool->stratum_notify = ret = true;
         else
             pool->stratum_notify = ret = false;
+        goto out_decref;
+    }
+
+    if (!strncasecmp(buf, "mining.set_version_mask", 23)) {
+        ret = parse_set_version_mask(pool, params);
         goto out_decref;
     }
 
