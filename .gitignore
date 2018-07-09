@@ -1,1 +1,9 @@
+/miner_type.h
 /bmminer
+*.o
+.built
+.configured_*
+.prepared
+.quilt_checked
+.source_dir
+ipkg-arm_cortex-a9_neon/

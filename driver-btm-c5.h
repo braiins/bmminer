@@ -518,14 +518,14 @@ extern int MAX_FAN_PCB_TEMP;
 #define GREEN_LED_DEV_C5 "/sys/class/leds/hps_led0/brightness"
 
 // for xilinx, bmminer will detect board type and use it.
-#define RED_LED_DEV_XILINX "/sys/class/gpio/gpio37/value"
-#define GREEN_LED_DEV_XILINX "/sys/class/gpio/gpio38/value"
+#define RED_LED_DEV_XILINX "/sys/class/gpio/gpio943/value"
+#define GREEN_LED_DEV_XILINX "/sys/class/gpio/gpio944/value"
 
 // S9 , T9,  R4    PIC PROGRAM
-#define PIC_PROGRAM "/etc/config/hash_s8_app.txt"
+#define PIC_PROGRAM "/etc/bmminer/hash_s8_app.txt"
 
 // T9+  PIC PROGRAM
-#define DSPIC33EP16GS202_PIC_PROGRAM "/etc/config/dsPIC33EP16GS202_app.txt"
+#define DSPIC33EP16GS202_PIC_PROGRAM "/etc/bmminer/dsPIC33EP16GS202_app.txt"
 
 
 #define TIMESLICE 60

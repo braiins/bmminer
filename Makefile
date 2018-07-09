@@ -56,6 +56,7 @@
 
 # The pre-processor and compiler options.
 # MY_CFLAGS = -ggdb3 -pipe -O2 -Wall -Wextra -fopenmp -march=native -mfpmath=sse -DLINUX -m64 -std=c++0x
+# MY_CFLAGS = -O0 -g -ggdb3 -pthread -I./ -I./ccan/opt -I./compat/jansson-2.6/src -I./lib
 MY_CFLAGS = -O2 -pthread -I./ -I./ccan/opt -I./compat/jansson-2.6/src -I./lib
 #-Itest1/include -Itest2/include -Itest1/include/test1 -Itest2/include/test2
 
@@ -93,7 +94,7 @@ HDREXTS = .h .H .hh .hpp .HPP .h++ .hxx .hp
 CFLAGS  = 
 # CXXFLAGS= -std=c++0x
 CXXFLAGS=
-CROSS_PREFIX=arm-openwrt-linux-muslgnueabi-
+CROSS_PREFIX=
 # The C program compiler.
 CC     = $(CROSS_PREFIX)gcc
 

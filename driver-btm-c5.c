@@ -50,6 +50,9 @@
 #include "miner.h"
 // #include "usbutils.h"
 
+#undef applog
+#define applog(prio, fmt, ...) do { printf(fmt, ##__VA_ARGS__); } while (0)
+
 #define MAX_CHAR_NUM    1024
 
 extern void reCalculateAVG();
@@ -303,32 +306,7 @@ bool isFixedFreqMode()
 
 bool isC5_Board()
 {
-    FILE *fd;
-    char board_type[32];
-    int isC5=0;
-
-    memset(board_type,'\0',32);
-
-    fd=fopen("/usr/bin/ctrl_bd","rb");
-    if(fd)
-    {
-        fread(board_type,1,32,fd);
-        fclose(fd);
-
-        if(strstr(board_type,"XILINX"))
-        {
-            isC5=0;
-        }
-        else isC5=1;
-    }
-    else
-    {
-        isC5=1;
-    }
-
-    if(isC5)
-        return true;
-    else return false;
+    return system("grep -q 'Xilinx' /proc/cpuinfo") != 0;
 }
 
 void software_set_address();
@@ -3975,7 +3953,7 @@ void set_Hardware_version(unsigned int value)
             fclose(fd);
         }
         pthread_mutex_unlock(&init_log_mutex);
-        //printf(logstr);
+        printf(logstr);
     }
 
     void clearInitLogFile()
@@ -5963,7 +5941,7 @@ void set_Hardware_version(unsigned int value)
             fclose(fd);
         }
 //  updateLogFile();
-//  printf(logstr);
+        printf(logstr);
     }
 
     void updateLogFile()
@@ -5975,7 +5953,7 @@ void set_Hardware_version(unsigned int value)
     {
         FILE *fd;
         char testnumStr[32];
-        fd=fopen("/etc/config/testID","wb");
+        fd=fopen("/etc/bmminer/testID","wb");
         if(fd)
         {
             memset(testnumStr,'\0',sizeof(testnumStr));
@@ -5988,7 +5966,7 @@ void set_Hardware_version(unsigned int value)
     {
         FILE *fd;
         char testnumStr[32];
-        fd=fopen("/etc/config/testID","rb");
+        fd=fopen("/etc/bmminer/testID","rb");
         if(fd)
         {
             memset(testnumStr,'\0',sizeof(testnumStr));
@@ -8044,7 +8022,7 @@ void set_Hardware_version(unsigned int value)
     {
         FILE *fd;
         char testnumStr[32];
-        fd=fopen("/etc/config/rebootTest","wb");
+        fd=fopen("/etc/bmminer/rebootTest","wb");
         if(fd)
         {
             memset(testnumStr,'\0',sizeof(testnumStr));
@@ -8061,7 +8039,7 @@ void set_Hardware_version(unsigned int value)
 #else
         FILE *fd;
         char testnumStr[32];
-        fd=fopen("/etc/config/rebootTest","rb");
+        fd=fopen("/etc/bmminer/rebootTest","rb");
         if(fd)
         {
             memset(testnumStr,'\0',sizeof(testnumStr));
@@ -8078,7 +8056,7 @@ void set_Hardware_version(unsigned int value)
     {
         FILE *fd;
         char testnumStr[32];
-        fd=fopen("/etc/config/restartTest","wb");
+        fd=fopen("/etc/bmminer/restartTest","wb");
         if(fd)
         {
             memset(testnumStr,'\0',sizeof(testnumStr));
@@ -8095,7 +8073,7 @@ void set_Hardware_version(unsigned int value)
 #else
         FILE *fd;
         char testnumStr[32];
-        fd=fopen("/etc/config/restartTest","rb");
+        fd=fopen("/etc/bmminer/restartTest","rb");
         if(fd)
         {
             memset(testnumStr,'\0',sizeof(testnumStr));
@@ -8304,7 +8282,7 @@ void set_Hardware_version(unsigned int value)
                 {
                     char error_info[256];
                     // keep the log , we can check it
-                    system("cp /tmp/search /etc/config/lastlog -f");
+                    system("cp /tmp/search /etc/bmminer/lastlog -f");
 
                     saveRebootTestNum(3333);    // 3333 is magic number inform that this miner failed on test !
                     rebootTestNum=3333;
@@ -9304,21 +9282,20 @@ void set_Hardware_version(unsigned int value)
                                     nonce_read_out.nonce_buffer[nonce_read_out.p_wr].midstate[m]  = *((unsigned char *)data_addr + MIDSTATE_OFFSET + m);
                                 }
 
-                                //applog(LOG_DEBUG,"%s: buf[0] = 0x%x\n", __FUNCTION__, buf[0]);
-                                //applog(LOG_DEBUG,"%s: work_id = 0x%x\n", __FUNCTION__, work_id);
-                                //applog(LOG_DEBUG,"%s: nonce2_jobid_address = 0x%x\n", __FUNCTION__, nonce2_jobid_address);
-                                //applog(LOG_DEBUG,"%s: data_addr = 0x%x\n", __FUNCTION__, data_addr);
-                                //applog(LOG_DEBUG,"%s: nonce3 = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].nonce3);
-                                //applog(LOG_DEBUG,"%s: job_id = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].job_id);
-                                //applog(LOG_DEBUG,"%s: header_version = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].header_version);
-                                //applog(LOG_DEBUG,"%s: nonce2 = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].nonce2);
+                                applog(LOG_DEBUG,"%s: buf[0] = 0x%x\n", __FUNCTION__, buf[0]);
+                                applog(LOG_DEBUG,"%s: work_id = 0x%x\n", __FUNCTION__, work_id);
+                                applog(LOG_DEBUG,"%s: nonce2_jobid_address = 0x%x\n", __FUNCTION__, nonce2_jobid_address);
+                                applog(LOG_DEBUG,"%s: data_addr = 0x%x\n", __FUNCTION__, data_addr);
+                                applog(LOG_DEBUG,"%s: nonce3 = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].nonce3);
+                                applog(LOG_DEBUG,"%s: job_id = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].job_id);
+                                applog(LOG_DEBUG,"%s: header_version = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].header_version);
+                                applog(LOG_DEBUG,"%s: nonce2 = 0x%x\n", __FUNCTION__, nonce_read_out.nonce_buffer[nonce_read_out.p_wr].nonce2);
 
-                                //buf_hex = bin2hex(nonce_read_out.nonce_buffer[nonce_read_out.p_wr].midstate,32);
+                                buf_hex = bin2hex(nonce_read_out.nonce_buffer[nonce_read_out.p_wr].midstate,32);
 
-                                //applog(LOG_DEBUG,"%s: midstate: %s\n", __FUNCTION__, buf_hex);
+                                applog(LOG_DEBUG,"%s: midstate: %s\n", __FUNCTION__, buf_hex);
 
-                                //free(buf_hex);
-
+                                free(buf_hex);
 
                                 if(nonce_read_out.p_wr < MAX_NONCE_NUMBER_IN_FIFO)
                                 {
@@ -11475,6 +11452,8 @@ void set_Hardware_version(unsigned int value)
         struct cgpu_info *bitmain_c5 = thr->cgpu;
         struct bitmain_c5_info *info = bitmain_c5->device_data;
 
+        printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
+
         info->thr = thr;
         mutex_init(&info->lock);
         cglock_init(&info->update_lock);
@@ -11536,6 +11515,8 @@ void set_Hardware_version(unsigned int value)
         struct cgpu_info *cgpu = calloc(1, sizeof(*cgpu));
         struct device_drv *drv = &bitmain_c5_drv;
         struct bitmain_c5_info *a;
+
+        printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
 
         assert(cgpu);
         cgpu->drv = drv;
@@ -11741,6 +11722,7 @@ void set_Hardware_version(unsigned int value)
             {
                 if(dev->chain_exist[chain_id] == 1)
                 {
+                    printf("!!! %s:%d: HW error\n", __FUNCTION__, __LINE__);
                     inc_hw_errors(thr);
                     dev->chain_hw[chain_id]++;
                 }
@@ -11753,6 +11735,7 @@ void set_Hardware_version(unsigned int value)
                 applog(LOG_DEBUG,"%s: job_id error ...\n", __FUNCTION__);
                 if(dev->chain_exist[chain_id] == 1)
                 {
+                    printf("!!! %s:%d: HW error\n", __FUNCTION__, __LINE__);
                     inc_hw_errors(thr);
                     dev->chain_hw[chain_id]++;
                 }
@@ -11776,6 +11759,7 @@ void set_Hardware_version(unsigned int value)
                     applog(LOG_DEBUG,"%s: job_id non't found ...\n", __FUNCTION__);
                     if(dev->chain_exist[chain_id] == 1)
                     {
+                        printf("!!! %s:%d: HW error (%d - %d, %p, %p, %p)\n", __FUNCTION__, __LINE__, given_id, job_id, pool_stratum0, pool_stratum1, pool_stratum2);
                         inc_hw_errors(thr);
                         dev->chain_hw[chain_id]++;
                     }
@@ -11798,6 +11782,7 @@ void set_Hardware_version(unsigned int value)
 
     static int64_t bitmain_c5_scanhash(struct thr_info *thr)
     {
+        // printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
         h = 0;
         pthread_t send_id;
         pthread_create(&send_id, NULL, bitmain_scanhash, thr);
@@ -11816,6 +11801,9 @@ void set_Hardware_version(unsigned int value)
         static char *last_job = NULL;
         bool same_job = true;
         unsigned char *buf = NULL;
+
+        printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
+
         thr->work_update = false;
         thr->work_restart = false;
         /* Step 1: Make sure pool is ready */
@@ -11855,6 +11843,7 @@ void set_Hardware_version(unsigned int value)
     static void get_bitmain_statline_before(char *buf, size_t bufsiz, struct cgpu_info *bitmain_c5)
     {
         struct bitmain_c5_info *info = bitmain_c5->device_data;
+        printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
     }
 
     void remove_dot_char(char *number)
@@ -11902,6 +11891,8 @@ void set_Hardware_version(unsigned int value)
         uint64_t hash_rate_all = 0;
         char displayed_rate_all[16];
         bool copy_data = true;
+
+        printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
 
         root = api_add_uint8(root, "miner_count", &(dev->chain_num), copy_data);
         root = api_add_string(root, "frequency", dev->frequency_t, copy_data);
@@ -12331,6 +12322,9 @@ void set_Hardware_version(unsigned int value)
     static void bitmain_c5_shutdown(struct thr_info *thr)
     {
         unsigned int ret;
+
+        printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
+
         thr_info_cancel(check_system_work_id);
         thr_info_cancel(read_nonce_reg_id);
         thr_info_cancel(read_temp_id);
