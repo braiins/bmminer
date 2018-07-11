@@ -111,6 +111,7 @@
 #define MAX_BAUD_DIVIDER        26
 #define DEFAULT_BAUD_DIVIDER    26
 #define VIL_COMMAND_TYPE        (0x02 << 5)
+//! Command is sent to all chips
 #define VIL_ALL                 (0x01 << 4)
 #define PAT                     (0x01 << 7)
 #define GRAY                    (0x01 << 6)
