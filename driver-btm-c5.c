@@ -157,8 +157,7 @@ bool is218_Temp=false;
 static struct init_config config_parameter;
 
 //global various
-int fd;                                         // axi fpga
-int fd_fpga_mem;                                // fpga memory
+int fd_mem;                                     // for mapping FPGA regions
 int fpga_version;
 int pcb_version;
 unsigned int *axi_fpga_addr = NULL;             // axi address
@@ -1555,7 +1554,6 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
             //  pthread_mutex_unlock(&iic_mutex);
 
             //printf("--- %s: read_back_data[0] = 0x%x, read_back_data[1] = 0x%x\n", __FUNCTION__, read_back_data[0], read_back_data[1]);
-
             if((read_back_data[0] != SET_VOLTAGE) || (read_back_data[1] != 1))
             {
                 sprintf(logstr,"%s failed on Chain[%d]!\n\n", __FUNCTION__,which_iic);
@@ -2371,15 +2369,15 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         unsigned int data;
         int ret=0;
 
-        fd = open("/dev/axi_fpga_dev", O_RDWR);
-        if(fd < 0)
+        fd_mem = open("/dev/mem", O_RDWR);
+        if(fd_mem < 0)
         {
-            applog(LOG_DEBUG,"/dev/axi_fpga_dev open failed. fd = %d\n", fd);
+            applog(LOG_DEBUG,"/dev/mem open failed. fd = %d\n", fd_mem);
             perror("open");
             return -1;
         }
 
-        axi_fpga_addr = mmap(NULL, TOTAL_LEN, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+        axi_fpga_addr = mmap(NULL, TOTAL_LEN, PROT_READ|PROT_WRITE, MAP_SHARED, fd_mem, AXI_FPGA_BASE_ADDRESS_XILINX);
         if(!axi_fpga_addr)
         {
             applog(LOG_DEBUG,"mmap axi_fpga_addr failed. axi_fpga_addr = 0x%x\n", axi_fpga_addr);
@@ -2396,15 +2394,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         }
         applog(LOG_DEBUG,"axi_fpga_addr data = 0x%x\n", data);
 
-        fd_fpga_mem = open("/dev/fpga_mem", O_RDWR);
-        if(fd_fpga_mem < 0)
-        {
-            applog(LOG_DEBUG,"/dev/fpga_mem open failed. fd_fpga_mem = %d\n", fd_fpga_mem);
-            perror("open");
-            return -1;
-        }
-
-        fpga_mem_addr = mmap(NULL, FPGA_MEM_TOTAL_LEN, PROT_READ|PROT_WRITE, MAP_SHARED, fd_fpga_mem, 0);
+        fpga_mem_addr = mmap(NULL, FPGA_MEM_TOTAL_LEN, PROT_READ|PROT_WRITE, MAP_SHARED, fd_mem, PHY_MEM_NONCE2_JOBID_ADDRESS);
         if(!fpga_mem_addr)
         {
             applog(LOG_DEBUG,"mmap fpga_mem_addr failed. fpga_mem_addr = 0x%x\n", fpga_mem_addr);
@@ -2481,8 +2471,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         //free(temp_job_start_address_1);
         //free(temp_job_start_address_2);
 
-        close(fd);
-        close(fd_fpga_mem);
+        close(fd_mem);
     }
 
     int get_fan_control(void)

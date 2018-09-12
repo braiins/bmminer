@@ -213,12 +213,14 @@
 #define PHY_MEM_NONCE2_JOBID_ADDRESS_XILINX_1GB         ((1024-16)*1024*1024)
 #define PHY_MEM_NONCE2_JOBID_ADDRESS_XILINX_512MB       ((512-16)*1024*1024)        // XILINX use 512MB memory
 #define PHY_MEM_NONCE2_JOBID_ADDRESS_XILINX_256MB       ((256-16)*1024*1024)        // XILINX use 512MB memory
-
 #define PHY_MEM_NONCE2_JOBID_ADDRESS_C5         ((1024-16)*1024*1024)
 extern unsigned int PHY_MEM_NONCE2_JOBID_ADDRESS;
 
 #define PHY_MEM_JOB_START_ADDRESS_1     (PHY_MEM_NONCE2_JOBID_ADDRESS + NONCE2_AND_JOBID_STORE_SPACE)
 #define PHY_MEM_JOB_START_ADDRESS_2     (PHY_MEM_JOB_START_ADDRESS_1 + JOB_STORE_SPACE)
+
+// Base address of the FPGA control interface connected via AXI bus
+#define AXI_FPGA_BASE_ADDRESS_XILINX    0x43c00000
 
 #include "miner_type.h"     // use setminertype to define miner type in this file instead of belows!!!
 //#define R4        // if defined , for R4  63 chips
