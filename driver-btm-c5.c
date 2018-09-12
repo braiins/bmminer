@@ -50,8 +50,10 @@
 #include "miner.h"
 // #include "usbutils.h"
 
+#ifdef DEBUG_LOG
 #undef applog
 #define applog(prio, fmt, ...) do { printf(fmt, ##__VA_ARGS__); } while (0)
+#endif
 
 #define MAX_CHAR_NUM    1024
 
@@ -3942,7 +3944,9 @@ void set_Hardware_version(unsigned int value)
             fclose(fd);
         }
         pthread_mutex_unlock(&init_log_mutex);
+#ifdef DEBUG_LOG
         printf(logstr);
+#endif
     }
 
     void clearInitLogFile()
@@ -5930,7 +5934,9 @@ void set_Hardware_version(unsigned int value)
             fclose(fd);
         }
 //  updateLogFile();
+#ifdef DEBUG_LOG
         printf(logstr);
+#endif
     }
 
     void updateLogFile()
@@ -9270,7 +9276,7 @@ void set_Hardware_version(unsigned int value)
                                 {
                                     nonce_read_out.nonce_buffer[nonce_read_out.p_wr].midstate[m]  = *((unsigned char *)data_addr + MIDSTATE_OFFSET + m);
                                 }
-
+#ifdef DEBUG_LOG
                                 applog(LOG_DEBUG,"%s: buf[0] = 0x%x\n", __FUNCTION__, buf[0]);
                                 applog(LOG_DEBUG,"%s: work_id = 0x%x\n", __FUNCTION__, work_id);
                                 applog(LOG_DEBUG,"%s: nonce2_jobid_address = 0x%x\n", __FUNCTION__, nonce2_jobid_address);
@@ -9285,6 +9291,7 @@ void set_Hardware_version(unsigned int value)
                                 applog(LOG_DEBUG,"%s: midstate: %s\n", __FUNCTION__, buf_hex);
 
                                 free(buf_hex);
+#endif
 
                                 if(nonce_read_out.p_wr < MAX_NONCE_NUMBER_IN_FIFO)
                                 {
@@ -11441,8 +11448,9 @@ void set_Hardware_version(unsigned int value)
         struct cgpu_info *bitmain_c5 = thr->cgpu;
         struct bitmain_c5_info *info = bitmain_c5->device_data;
 
+#ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
-
+#endif
         info->thr = thr;
         mutex_init(&info->lock);
         cglock_init(&info->update_lock);
@@ -11504,9 +11512,9 @@ void set_Hardware_version(unsigned int value)
         struct cgpu_info *cgpu = calloc(1, sizeof(*cgpu));
         struct device_drv *drv = &bitmain_c5_drv;
         struct bitmain_c5_info *a;
-
+#ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
-
+#endif
         assert(cgpu);
         cgpu->drv = drv;
         cgpu->deven = DEV_ENABLED;
@@ -11711,7 +11719,9 @@ void set_Hardware_version(unsigned int value)
             {
                 if(dev->chain_exist[chain_id] == 1)
                 {
+#ifdef DEBUG_LOG
                     printf("!!! %s:%d: HW error\n", __FUNCTION__, __LINE__);
+#endif
                     inc_hw_errors(thr);
                     dev->chain_hw[chain_id]++;
                 }
@@ -11724,7 +11734,9 @@ void set_Hardware_version(unsigned int value)
                 applog(LOG_DEBUG,"%s: job_id error ...\n", __FUNCTION__);
                 if(dev->chain_exist[chain_id] == 1)
                 {
+#ifdef DEBUG_LOG
                     printf("!!! %s:%d: HW error\n", __FUNCTION__, __LINE__);
+#endif
                     inc_hw_errors(thr);
                     dev->chain_hw[chain_id]++;
                 }
@@ -11748,7 +11760,9 @@ void set_Hardware_version(unsigned int value)
                     applog(LOG_DEBUG,"%s: job_id non't found ...\n", __FUNCTION__);
                     if(dev->chain_exist[chain_id] == 1)
                     {
+#ifdef DEBUG_LOG
                         printf("!!! %s:%d: HW error (%d - %d, %p, %p, %p)\n", __FUNCTION__, __LINE__, given_id, job_id, pool_stratum0, pool_stratum1, pool_stratum2);
+#endif
                         inc_hw_errors(thr);
                         dev->chain_hw[chain_id]++;
                     }
@@ -11771,7 +11785,9 @@ void set_Hardware_version(unsigned int value)
 
     static int64_t bitmain_c5_scanhash(struct thr_info *thr)
     {
+#ifdef DEBUG_LOG
         // printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
+#endif
         h = 0;
         pthread_t send_id;
         pthread_create(&send_id, NULL, bitmain_scanhash, thr);
@@ -11790,9 +11806,9 @@ void set_Hardware_version(unsigned int value)
         static char *last_job = NULL;
         bool same_job = true;
         unsigned char *buf = NULL;
-
+#ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
-
+#endif
         thr->work_update = false;
         thr->work_restart = false;
         /* Step 1: Make sure pool is ready */
@@ -11832,7 +11848,9 @@ void set_Hardware_version(unsigned int value)
     static void get_bitmain_statline_before(char *buf, size_t bufsiz, struct cgpu_info *bitmain_c5)
     {
         struct bitmain_c5_info *info = bitmain_c5->device_data;
+#ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
+#endif
     }
 
     void remove_dot_char(char *number)
@@ -11880,9 +11898,9 @@ void set_Hardware_version(unsigned int value)
         uint64_t hash_rate_all = 0;
         char displayed_rate_all[16];
         bool copy_data = true;
-
+#ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
-
+#endif
         root = api_add_uint8(root, "miner_count", &(dev->chain_num), copy_data);
         root = api_add_string(root, "frequency", dev->frequency_t, copy_data);
         root = api_add_uint8(root, "fan_num", &(dev->fan_num), copy_data);
@@ -12311,9 +12329,9 @@ void set_Hardware_version(unsigned int value)
     static void bitmain_c5_shutdown(struct thr_info *thr)
     {
         unsigned int ret;
-
+#ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
-
+#endif
         thr_info_cancel(check_system_work_id);
         thr_info_cancel(read_nonce_reg_id);
         thr_info_cancel(read_temp_id);
