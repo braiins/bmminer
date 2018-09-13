@@ -7813,6 +7813,7 @@ void set_Hardware_version(unsigned int value)
         set_baud(bauddiv,1);
     }
 
+#if 0
 #ifdef DEBUG_PRINT_T9_PLUS_PIC_HEART_INFO
     void set_red_led(bool flag)
     {
@@ -7891,6 +7892,10 @@ void set_Hardware_version(unsigned int value)
             }
         }
     }
+#else
+    void set_red_led(bool flag) {}
+    void set_led(bool stop) {}
+#endif
 
     void * pic_heart_beat_func()
     {
