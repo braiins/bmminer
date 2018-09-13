@@ -1568,7 +1568,7 @@ static struct opt_table opt_config_table[] =
     "Set bitmain miner use fixed freq"),
 
     OPT_WITHOUT_ARG("--no-pre-heat",
-    opt_set_false, &opt_pre_heat,
+    opt_set_invbool, &opt_pre_heat,
     "Set bitmain miner doesn't pre heat"),
 
 
