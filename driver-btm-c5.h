@@ -912,6 +912,11 @@ extern int ADD_FREQ;
 extern int ADD_FREQ1;
 extern int fpga_version;
 
+extern struct all_parameters *dev;
+extern char displayed_rate[BITMAIN_MAX_CHAIN_NUM][32];
+extern unsigned char last_freq[BITMAIN_MAX_CHAIN_NUM][256];
+extern int chain_badcore_num[BITMAIN_MAX_CHAIN_NUM][256];
+
 
 #endif
 

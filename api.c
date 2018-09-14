@@ -25,6 +25,7 @@
 #include "miner.h"
 #include "util.h"
 #include "klist.h"
+#include "driver-btm-c5.h"
 
 #if defined(USE_BFLSC) || defined(USE_AVALON) || defined(USE_AVALON2) || defined(USE_AVALON4) || \
   defined(USE_HASHFAST) || defined(USE_BITFURY) || defined(USE_BLOCKERUPTER) || defined(USE_KLONDIKE) || \
@@ -2244,56 +2245,136 @@ static void pgastatus(struct io_data *io_data, int pga, bool isjson, bool precom
 }
 #endif
 
+static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct io_data *io_data, bool isjson, bool precom, int i, int devid)
+{
+	struct api_data *root = NULL;
+	char *enabled;
+	char *status;
+
+	float temp = dev->chain_asic_maxtemp[i][TEMP_POS_LOCAL];
+	float temp_max = dev->chain_asic_temp[i][0][TEMP_POS_MIDDLE];
+	float temp_min = dev->chain_asic_temp[i][1][TEMP_POS_MIDDLE];
+
+	if (cgpu->deven != DEV_DISABLED)
+		enabled = (char *)YES;
+	else
+		enabled = (char *)NO;
+
+	status = (char *)status2str(cgpu->status);
+
+	root = api_add_int(root, "ASC", &devid, false);
+	root = api_add_string(root, "Name", cgpu->drv->name, false);
+	root = api_add_int(root, "ID", &(cgpu->device_id), false);
+	root = api_add_string(root, "Enabled", enabled, false);
+	root = api_add_string(root, "Status", status, false);
+
+	root = api_add_temp(root, "TempAVG", &temp, false);
+	root = api_add_temp(root, "TempMAX", &temp_max, false);
+	root = api_add_temp(root, "TempMIN", &temp_min, false);
+	root = api_add_uint8(root, "CHIP", &(dev->chain_asic_num[i]), false);
+	//root = api_add_int(root, "CORE", &(dev->chain_asic_num[i]), false);
+	{
+            	double dev_sum_freq=0;
+		int j = 0;
+		int temp;
+                if(last_freq[i][1] == FREQ_MAGIC)
+                {
+                    for(j = 0; j < dev->chain_asic_num[i]; j++)
+                    {
+                        dev_sum_freq += atoi(freq_pll_1385[last_freq[i][j*2+3]].freq);
+                    }
+
+                    if(dev->chain_asic_num[i]>0)
+                        dev_sum_freq=dev_sum_freq/dev->chain_asic_num[i];
+
+                    temp=(int)(dev_sum_freq*100);
+                    dev_sum_freq=((temp*1.0)/100);
+                }
+                else
+                {
+                    temp=(int)(dev_sum_freq*100);
+                    dev_sum_freq=((temp*1.0)/100);
+                }
+                root = api_add_mhs(root, "FREQ", &dev_sum_freq, true);
+	}
+
+	root = api_add_uint(root, "DUTY", &(dev->fan_speed_value[i]), false);
+	double mhs = atof(displayed_rate[i]) * 1000;
+	root = api_add_mhs(root, "MHS av", &mhs, false);
+	char mhsname[27];
+	sprintf(mhsname, "MHS %ds", opt_log_interval);
+	root = api_add_mhs(root, mhsname, &mhs, false);
+	root = api_add_mhs(root, "MHS 1m", &mhs, false);
+	root = api_add_mhs(root, "MHS 5m", &mhs, false);
+	root = api_add_mhs(root, "MHS 15m", &mhs, false);
+	{
+                double dev_sum_freq=0;
+		int j = 0;
+		int temp;
+
+                if(last_freq[i][1] == FREQ_MAGIC)
+                {
+                    for(j = 0; j < dev->chain_asic_num[i]; j++)
+                    {
+                        dev_sum_freq += atoi(freq_pll_1385[last_freq[i][j*2+3]].freq)*(BM1387_CORE_NUM-chain_badcore_num[i][j]);
+                    }
+
+                    dev_sum_freq=((dev_sum_freq*1.0)/1000);
+                    temp=(int)(dev_sum_freq*100);
+                    dev_sum_freq=((temp*1.0)/100);
+                }
+                else
+                {
+                    dev_sum_freq=((dev_sum_freq*1.0)/1000);
+                    temp=(int)(dev_sum_freq*100);
+                    dev_sum_freq=((temp*1.0)/100);
+                }
+		dev_sum_freq *= 1000.0;
+		/* Nominal MHS is the theoretical limit for fully working
+		   chain */
+		root = api_add_mhs(root, "nominal MHS", &dev_sum_freq, false);
+		/* Maximal MHS takes into account number of enabled cores */
+		root = api_add_mhs(root, "maximal MHS", &dev_sum_freq, false);
+	}
+#if 0
+	root = api_add_int(root, "Accepted", &(cgpu->accepted), false);
+	root = api_add_int(root, "Rejected", &(cgpu->rejected), false);
+#endif
+	root = api_add_int(root, "Hardware Errors", &(dev->chain_hw[i]), false);
+
+	root = print_data(io_data, root, isjson, precom);
+}
+
+static struct api_data *bitmain_api_devstatus(struct cgpu_info *cgpu, struct io_data *io_data, bool isjson, bool precom)
+{
+	int i, devcount;
+	devcount = 0;
+        for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+		if (dev->chain_exist[i] == 1) {
+			bitmain_api_chainstatus(cgpu, io_data, isjson, precom, i, devcount);
+			devcount++;
+		}
+	}
+}
+
 static void devstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __maybe_unused char *param, bool isjson, __maybe_unused char group)
 {
     bool io_open = false;
-    int devcount = 0;
-    int numasc = 0;
-    int numpga = 0;
     int i;
 
-#ifdef HAVE_AN_ASIC
-    numasc = numascs();
-#endif
-
-#ifdef HAVE_AN_FPGA
-    numpga = numpgas();
-#endif
-
-    if (numpga == 0 && numasc == 0)
-    {
+    if (total_devices == 0) {
         message(io_data, MSG_NODEVS, 0, NULL, isjson);
         return;
     }
-
 
     message(io_data, MSG_DEVS, 0, NULL, isjson);
     if (isjson)
         io_open = io_add(io_data, COMSTR JSON_DEVS);
 
-#ifdef HAVE_AN_ASIC
-    if (numasc > 0)
-    {
-        for (i = 0; i < numasc; i++)
-        {
-            ascstatus(io_data, i, isjson, isjson && devcount > 0);
-
-            devcount++;
-        }
+    /* I don't have time for no class-hierarchy-function-pointer-generic-object shenaningans */
+    for (i = 0; i < total_devices; i++) {
+        bitmain_api_devstatus(devices[i], io_data, isjson, isjson && i > 0);
     }
-#endif
-
-#ifdef HAVE_AN_FPGA
-    if (numpga > 0)
-    {
-        for (i = 0; i < numpga; i++)
-        {
-            pgastatus(io_data, i, isjson, isjson && devcount > 0);
-
-            devcount++;
-        }
-    }
-#endif
 
     if (isjson && io_open)
         io_close(io_data);

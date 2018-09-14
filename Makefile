@@ -58,6 +58,7 @@
 # MY_CFLAGS = -ggdb3 -pipe -O2 -Wall -Wextra -fopenmp -march=native -mfpmath=sse -DLINUX -m64 -std=c++0x
 # MY_CFLAGS = -O0 -g -ggdb3 -pthread -I./ -I./ccan/opt -I./compat/jansson-2.6/src -I./lib
 MY_CFLAGS = -O2 -pthread -I./ -I./ccan/opt -I./compat/jansson-2.6/src -I./lib
+MY_CFLAGS += -DHAVE_AN_ASIC
 #-Itest1/include -Itest2/include -Itest1/include/test1 -Itest2/include/test2
 
 # The linker options.
