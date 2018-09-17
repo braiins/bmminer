@@ -1414,8 +1414,7 @@ struct work
 #ifdef USE_BITMAIN_C5
     int version;
 #endif
-
-
+    unsigned int chain_id;
 };
 
 #define TAILBUFSIZ 64

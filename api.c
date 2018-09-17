@@ -2336,26 +2336,8 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 		/* Maximal MHS takes into account number of enabled cores */
 		root = api_add_mhs(root, "maximal MHS", &dev_sum_freq, false);
 	}
-	/* our accepted/rejected statistics are not split per-chain (we have
-	   one shared cgpu). our options are:
-		1. do not report anything
-		2. report 0
-		3. report just the sum value (for one particular chain, rest 0)
-		4. report the sum value, but divide it by number of chains
-		5. implement separated cgpu for each chain
-
-	   I don't have time for 5., but that's the best solution. Options 1.
-	   and 2. give no information, option 3. looks more fake than 4 (which
-	   is good, because it's fake). I go for 4.
-	 */
-	if (devid == 0) {
-		root = api_add_int(root, "Accepted", &(cgpu->accepted), false);
-		root = api_add_int(root, "Rejected", &(cgpu->rejected), false);
-	} else {
-		int a = 0, r = 0;
-		root = api_add_int(root, "Accepted", &a, false);
-		root = api_add_int(root, "Rejected", &r, false);
-	}
+	root = api_add_int(root, "Accepted", &g_accepted[i], false);
+	root = api_add_int(root, "Rejected", &g_rejected[i], false);
 	root = api_add_int(root, "Hardware Errors", &(dev->chain_hw[i]), false);
 
 	root = print_data(io_data, root, isjson, devid > 0);

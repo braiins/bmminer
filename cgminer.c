@@ -3450,6 +3450,8 @@ static void share_result(
     {
         mutex_lock(&stats_lock);
 
+	if (work->chain_id < BITMAIN_MAX_CHAIN_NUM)
+		g_accepted[work->chain_id]++;
         cgpu->accepted++;
         total_accepted++;
         pool->accepted++;
@@ -3512,6 +3514,8 @@ static void share_result(
     else
     {
         mutex_lock(&stats_lock);
+	if (work->chain_id < BITMAIN_MAX_CHAIN_NUM)
+		g_rejected[work->chain_id]++;
         cgpu->rejected++;
         total_rejected++;
         pool->rejected++;

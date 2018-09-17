@@ -919,5 +919,8 @@ extern int chain_badcore_num[BITMAIN_MAX_CHAIN_NUM][256];
 
 int get_pll_index(int freq);
 
+extern uint32_t g_accepted[BITMAIN_MAX_CHAIN_NUM];
+extern uint32_t g_rejected[BITMAIN_MAX_CHAIN_NUM];
+
 #endif
 

@@ -225,6 +225,8 @@ bool check_temp_offside = false;
 
 double chain_asic_RT[BITMAIN_MAX_CHAIN_NUM][CHAIN_ASIC_NUM]= {0};
 
+uint32_t g_accepted[BITMAIN_MAX_CHAIN_NUM] = {0};
+uint32_t g_rejected[BITMAIN_MAX_CHAIN_NUM] = {0};
 uint64_t rate[BITMAIN_MAX_CHAIN_NUM] = {0};
 uint64_t nonce_num[BITMAIN_MAX_CHAIN_NUM][BITMAIN_DEFAULT_ASIC_NUM][TIMESLICE] = {0};
 int nonce_times = 0;
@@ -11643,6 +11645,7 @@ void set_Hardware_version(unsigned int value)
                     }
                 }
 #ifndef CAPTURE_PATTEN
+		work->chain_id = chain_id;
                 submit_nonce(thr, work, nonce); // clement disable it , do not submit to pool
 #endif
             }
