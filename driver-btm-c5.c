@@ -1706,7 +1706,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         send_pic_command(chain);
         write_pic_iic(false, false, 0x0, chain, GET_VOLTAGE);
         ret = write_pic_iic(true, false, 0x0, chain, 0);
-        applog(LOG_NOTICE,"%s: voltage = %d\n", __FUNCTION__, ret);
+        applog(LOG_NOTICE,"%s: voltage = %d", __FUNCTION__, ret);
         return ret;
     }
 
@@ -3332,25 +3332,13 @@ void set_Hardware_version(unsigned int value)
     static void get_plldata(int type,int freq,uint32_t * reg_data,uint16_t * reg_data2, uint32_t *vil_data)
     {
         uint32_t i;
-        char freq_str[10];
-        sprintf(freq_str,"%d", freq);
         char plldivider1[32] = {0};
         char plldivider2[32] = {0};
         char vildivider[32] = {0};
 
-        if(type == 1385)
-        {
-            for(i=0; i < sizeof(freq_pll_1385)/sizeof(freq_pll_1385[0]); i++)
-            {
-                if( memcmp(freq_pll_1385[i].freq, freq_str, sizeof(freq_pll_1385[i].freq)) == 0)
-                    break;
-            }
-        }
+	assert(type == 1385);
 
-        if(i == sizeof(freq_pll_1385)/sizeof(freq_pll_1385[0]))
-        {
-            i = 4;
-        }
+	i = get_pll_index(freq);
 
         sprintf(plldivider1, "%08x", freq_pll_1385[i].fildiv1);
         sprintf(plldivider2, "%04x", freq_pll_1385[i].fildiv2);
@@ -3453,27 +3441,23 @@ void set_Hardware_version(unsigned int value)
         }
     }
 
+    /* always return _some_ valid index */
     int get_pll_index(int freq)
     {
 
         int i;
-        char freq_str[10];
-        sprintf(freq_str,"%d", freq);
-
-        for(i=0; i < sizeof(freq_pll_1385)/sizeof(freq_pll_1385[0]); i++)
-        {
-            if( memcmp(freq_pll_1385[i].freq, freq_str, sizeof(freq_pll_1385[i].freq)) == 0)
-                break;
+	int n = sizeof(freq_pll_1385) / sizeof(freq_pll_1385[0]);
+        for (i = 0; i < n; i++) {
+		int tab_freq = atoi(freq_pll_1385[i].freq);
+		if (freq <= tab_freq)
+			break;
         }
 
-
-        if(i == sizeof(freq_pll_1385)/sizeof(freq_pll_1385[0]))
-        {
-            i = -1;
+        if(i >= n) {
+            i = n - 1;
         }
 
         return i;
-
     }
 
     int get_freqvalue_by_index(int index)
@@ -3987,13 +3971,16 @@ void set_Hardware_version(unsigned int value)
         unsigned char hashMAC[6];   // single board test write control board's MAC into hashbaord
         unsigned char vol_pic;
         int vol_value;
-        int default_freq_index=get_pll_index(frequency);
+	unsigned short int orig_frequency = frequency;
+        int default_freq_index=get_pll_index(orig_frequency);
         char logstr[256];
 
         applog(LOG_DEBUG,"\n--- %s\n", __FUNCTION__);
 
-        get_plldata(1385, frequency, &reg_data_pll, &reg_data_pll2, &reg_data_vil);
-        applog(LOG_DEBUG,"%s: frequency = %d\n", __FUNCTION__, frequency);
+        get_plldata(1385, orig_frequency, &reg_data_pll, &reg_data_pll2, &reg_data_vil);
+	frequency = atoi(freq_pll_1385[default_freq_index].freq);
+        applog(LOG_NOTICE, "%s: frequency = %d (index %d, was converted from %d)",
+		__FUNCTION__, frequency, default_freq_index, orig_frequency);
 
         //////////////// set default freq when no freq in PIC //////////////////////////////
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
