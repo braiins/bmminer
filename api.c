@@ -2264,7 +2264,7 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 
 	root = api_add_int(root, "ASC", &devid, false);
 	root = api_add_string(root, "Name", cgpu->drv->name, false);
-	root = api_add_int(root, "ID", &(cgpu->device_id), false);
+	root = api_add_int(root, "ID", &devid, false);
 	root = api_add_string(root, "Enabled", enabled, false);
 	root = api_add_string(root, "Status", status, false);
 
@@ -2358,7 +2358,7 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 	}
 	root = api_add_int(root, "Hardware Errors", &(dev->chain_hw[i]), false);
 
-	root = print_data(io_data, root, isjson, precom);
+	root = print_data(io_data, root, isjson, devid > 0);
 }
 
 static struct api_data *bitmain_api_devstatus(struct cgpu_info *cgpu, struct io_data *io_data, bool isjson, bool precom)
