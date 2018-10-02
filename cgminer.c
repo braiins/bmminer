@@ -6020,7 +6020,10 @@ void write_config(FILE *fcfg)
             if (opt->type & OPT_HASARG &&
                 ((void *)opt->cb_arg == set_voltage))
             {
-                fprintf(fcfg, ",\n\"%s\" : \"%.2lf\"", p + 2, (*(int *)opt->u.arg)/100.0);
+		int vol = *(int *)opt->u.arg;
+		if (vol != 0) {
+                    fprintf(fcfg, ",\n\"%s\" : \"%.2lf\"", p + 2, vol/100.0);
+		}
                 continue;
             }
 
