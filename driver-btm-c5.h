@@ -922,5 +922,7 @@ int get_pll_index(int freq);
 extern uint32_t g_accepted[BITMAIN_MAX_CHAIN_NUM];
 extern uint32_t g_rejected[BITMAIN_MAX_CHAIN_NUM];
 
+extern int chain_voltage_settings[BITMAIN_MAX_CHAIN_NUM];
+
 #endif
 

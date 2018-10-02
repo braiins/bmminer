@@ -233,6 +233,7 @@ int nonce_times = 0;
 int rate_error[BITMAIN_MAX_CHAIN_NUM] = {0};
 char displayed_rate[BITMAIN_MAX_CHAIN_NUM][32];
 
+int chain_voltage_settings[BITMAIN_MAX_CHAIN_NUM] = {0};
 uint8_t chain_voltage_pic[BITMAIN_MAX_CHAIN_NUM] = {0xff};
 int chain_voltage_value[BITMAIN_MAX_CHAIN_NUM] = {0};
 

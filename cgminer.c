@@ -923,6 +923,59 @@ static char __maybe_unused *set_int_0_to_4(const char *arg, int *i)
     return set_int_range(arg, i, 0, 4);
 }
 
+static int parse_list(char *s, char **argv, int max_argc, char sep)
+{
+	int argc = 0;
+
+	if (!*s)
+		return 0;
+	while (argc < max_argc) {
+		argv[argc++] = s;
+		while (*s != sep) {
+			if (!*s)
+				goto done;
+			s++;
+		}
+		*s++ = 0;
+	}
+done:
+	return argc;
+}
+
+static const char *parse_voltage(const char *s, int *volt)
+{
+	char *end;
+	double x = strtod(s, &end);
+	if (*end)
+		return "list element has to be float or empty";
+	if (x <= 0 || x >= 20)
+		return "list element has to be in range (0,20)";
+	*volt = x * 100;
+	return 0;
+}
+
+static const char *set_voltages(const char *arg, int *voltages)
+{
+	char *list = strdupa(arg);
+	int argc;
+	char *argv[BITMAIN_MAX_CHAIN_NUM];
+
+	argc = parse_list(list, argv, ARRAY_SIZE(argv), ',');
+	for (int i = 0; i < argc; i++) {
+		const char *s = argv[i];
+		/* if "*s" is empty, then leave default value */
+		/* otherwise parse as float */
+		if (*s) {
+			int vol;
+			const char *err = parse_voltage(s, &vol);
+			if (err)
+				return err;
+			applog(LOG_NOTICE, "setting voltage of chain %d to %d", i, vol);
+			voltages[i] = vol;
+		}
+	}
+	return 0;
+}
 
 void get_intrange(char *arg, int *val1, int *val2)
 {
@@ -1557,6 +1610,10 @@ static struct opt_table opt_config_table[] =
     OPT_WITH_ARG("--bitmain-freq",
     set_int_0_to_9999,opt_show_intval, &opt_bitmain_c5_freq,
     "Set frequency"),
+
+    OPT_WITH_ARG("--bitmain-voltages",
+    set_voltages, 0, &chain_voltage_settings,
+    "Set voltages"),
 
     OPT_WITH_ARG("--bitmain-voltage",
     set_int_0_to_9999,opt_show_intval, &opt_bitmain_c5_voltage,
@@ -5843,6 +5900,18 @@ static char *json_escape(char *str)
     return buf;
 }
 
+static void write_voltages(FILE *fcfg, const int *voltages)
+{
+	int i, n;
+
+	for (n = BITMAIN_MAX_CHAIN_NUM; n > 0; n--) {
+		if (voltages[n - 1] != 0)
+			break;
+	}
+	for (i = 0; i < n; i++) {
+		fprintf(fcfg, "%s%1.2lf", i > 0 ? "," : "", voltages[i] / 100.0);
+	}
+}
 
 void write_config(FILE *fcfg)
 {
@@ -5929,6 +5998,16 @@ void write_config(FILE *fcfg)
                 fprintf(fcfg, ",\n\"%s\" : \"%d\"", p+2, *(int *)opt->u.arg);
                 continue;
             }
+
+            if (opt->type & OPT_HASARG &&
+                ((void *)opt->cb_arg == set_voltages))
+            {
+                fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
+		write_voltages(fcfg, chain_voltage_settings);
+                fprintf(fcfg, "\"");
+                continue;
+            }
+
 
             if (opt->type & OPT_HASARG &&
                 (((void *)opt->cb_arg == (void *)set_float_125_to_500) ||
