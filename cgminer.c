@@ -942,7 +942,7 @@ done:
 	return argc;
 }
 
-static const char *parse_voltage(const char *s, int *volt)
+static const char *set_voltage(const char *s, int *volt)
 {
 	char *end;
 	double x = strtod(s, &end);
@@ -951,11 +951,11 @@ static const char *parse_voltage(const char *s, int *volt)
 	int max = MIN(getVolValueFromPICvoltage(0), HIGHEST_VOLTAGE_LIMITED_HW);
 
 	if (*end)
-		return "list element has to be float or empty";
+		return "voltage has to be float or empty";
 	int xx = x * 100;
 	if (xx < min || xx > max) {
 		applog(LOG_WARNING, "voltage range is [%.2lf,%.2lf]", min/100.0, max/100.0);
-		return "list element out of range";
+		return "voltage out of range";
 	}
 	*volt = xx;
 	return 0;
@@ -974,7 +974,7 @@ static const char *set_voltages(const char *arg, int *voltages)
 		/* otherwise parse as float */
 		if (*s) {
 			int vol;
-			const char *err = parse_voltage(s, &vol);
+			const char *err = set_voltage(s, &vol);
 			if (err)
 				return err;
 			applog(LOG_INFO, "setting user voltage of (logical) chain %d to %d", i, vol);
@@ -1618,12 +1618,14 @@ static struct opt_table opt_config_table[] =
     set_int_0_to_9999,opt_show_intval, &opt_bitmain_c5_freq,
     "Set frequency"),
 
+#if 0
     OPT_WITH_ARG("--bitmain-voltages",
     set_voltages, 0, &chain_voltage_settings,
     "Set voltages"),
+#endif
 
     OPT_WITH_ARG("--bitmain-voltage",
-    set_int_0_to_9999,opt_show_intval, &opt_bitmain_c5_voltage,
+    set_voltage, opt_show_intval, &opt_bitmain_c5_voltage,
     "Set voltage"),
 
 
@@ -6012,6 +6014,13 @@ void write_config(FILE *fcfg)
                 fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
 		write_voltages(fcfg, chain_voltage_settings);
                 fprintf(fcfg, "\"");
+                continue;
+            }
+
+            if (opt->type & OPT_HASARG &&
+                ((void *)opt->cb_arg == set_voltage))
+            {
+                fprintf(fcfg, ",\n\"%s\" : \"%.2lf\"", p + 2, (*(int *)opt->u.arg)/100.0);
                 continue;
             }
 

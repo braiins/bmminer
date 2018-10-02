@@ -201,7 +201,7 @@ int last_temperature = 0, temp_highest = 0;
 bool opt_bitmain_fan_ctrl = false;
 int opt_bitmain_fan_pwm = 0;
 int opt_bitmain_c5_freq = 600;
-int opt_bitmain_c5_voltage = 176;
+int opt_bitmain_c5_voltage = 0;
 int ADD_FREQ = 0;
 int ADD_FREQ1 = 0;
 uint8_t de_voltage = 176;
@@ -10301,26 +10301,23 @@ void set_Hardware_version(unsigned int value)
 
         if(isFixedFreqMode())
         {
-	    int chain_no = 0;
-            // we must set voltage value according to the freq of config file!
+            int vol = getFixedFreqVoltageValue(config_parameter.frequency);
+
+            if (opt_bitmain_c5_voltage != 0) {
+                applog(LOG_NOTICE, "overriding global voltage from default %.2lfV to %.2lfV",
+                            vol / 100.0, opt_bitmain_c5_voltage / 100.0);
+                vol = opt_bitmain_c5_voltage;
+            }
+
             for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
             {
                 if(dev->chain_exist[i] == 1)
                 {
-		    int vol = getFixedFreqVoltageValue(config_parameter.frequency);
-
-		    if (chain_voltage_settings[chain_no] != 0) {
-			applog(LOG_NOTICE, "overriding voltage of chain %d from default %.2lfV to %.2lfV",
-			    i, vol / 100.0, chain_voltage_settings[chain_no] / 100.0);
-			vol = chain_voltage_settings[chain_no];
-		    }
                     chain_voltage_value[i] = vol;
                     chain_voltage_pic[i] = getPICvoltageFromValue(chain_voltage_value[i]);
 
                     sprintf(logstr,"Fix freq=%d Chain[%d] voltage_pic=%d value=%d\n",config_parameter.frequency,i,chain_voltage_pic[i],chain_voltage_value[i]);
                     writeInitLogFile(logstr);
-
-		    chain_no++;
                 }
             }
         }
