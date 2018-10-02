@@ -1697,7 +1697,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
     void set_pic_voltage(unsigned char chain, unsigned char voltage)
     {
         send_pic_command(chain);
-        applog(LOG_NOTICE,"%s voltage %u",__FUNCTION__,voltage);
+        applog(LOG_NOTICE, "%s: chain %d: setting voltage %.2lfV (PIC=%u)",__FUNCTION__,chain, getVolValueFromPICvoltage(voltage)/100.0, voltage);
         write_pic_iic(false, false, 0x0, chain, SET_VOLTAGE);
         write_pic_iic(false, false, 0x0, chain, voltage);
         cgsleep_us(100000);
@@ -10301,16 +10301,26 @@ void set_Hardware_version(unsigned int value)
 
         if(isFixedFreqMode())
         {
+	    int chain_no = 0;
             // we must set voltage value according to the freq of config file!
             for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
             {
                 if(dev->chain_exist[i] == 1)
                 {
-                    chain_voltage_value[i] = getFixedFreqVoltageValue(config_parameter.frequency);
+		    int vol = getFixedFreqVoltageValue(config_parameter.frequency);
+
+		    if (chain_voltage_settings[chain_no] != 0) {
+			applog(LOG_NOTICE, "overriding voltage of chain %d from default %.2lfV to %.2lfV",
+			    i, vol / 100.0, chain_voltage_settings[chain_no] / 100.0);
+			vol = chain_voltage_settings[chain_no];
+		    }
+                    chain_voltage_value[i] = vol;
                     chain_voltage_pic[i] = getPICvoltageFromValue(chain_voltage_value[i]);
 
                     sprintf(logstr,"Fix freq=%d Chain[%d] voltage_pic=%d value=%d\n",config_parameter.frequency,i,chain_voltage_pic[i],chain_voltage_value[i]);
                     writeInitLogFile(logstr);
+
+		    chain_no++;
                 }
             }
         }

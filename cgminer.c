@@ -946,11 +946,18 @@ static const char *parse_voltage(const char *s, int *volt)
 {
 	char *end;
 	double x = strtod(s, &end);
+	/* extract voltage bounds from coversion function */
+	int min = getVolValueFromPICvoltage(255);
+	int max = MIN(getVolValueFromPICvoltage(0), HIGHEST_VOLTAGE_LIMITED_HW);
+
 	if (*end)
 		return "list element has to be float or empty";
-	if (x <= 0 || x >= 20)
-		return "list element has to be in range (0,20)";
-	*volt = x * 100;
+	int xx = x * 100;
+	if (xx < min || xx > max) {
+		applog(LOG_WARNING, "voltage range is [%.2lf,%.2lf]", min/100.0, max/100.0);
+		return "list element out of range";
+	}
+	*volt = xx;
 	return 0;
 }
 
@@ -970,7 +977,7 @@ static const char *set_voltages(const char *arg, int *voltages)
 			const char *err = parse_voltage(s, &vol);
 			if (err)
 				return err;
-			applog(LOG_NOTICE, "setting voltage of chain %d to %d", i, vol);
+			applog(LOG_INFO, "setting user voltage of (logical) chain %d to %d", i, vol);
 			voltages[i] = vol;
 		}
 	}
@@ -5909,7 +5916,7 @@ static void write_voltages(FILE *fcfg, const int *voltages)
 			break;
 	}
 	for (i = 0; i < n; i++) {
-		fprintf(fcfg, "%s%1.2lf", i > 0 ? "," : "", voltages[i] / 100.0);
+		fprintf(fcfg, "%s%.2lf", i > 0 ? "," : "", voltages[i] / 100.0);
 	}
 }
 

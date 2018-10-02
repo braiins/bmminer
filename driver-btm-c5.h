@@ -924,5 +924,6 @@ extern uint32_t g_rejected[BITMAIN_MAX_CHAIN_NUM];
 
 extern int chain_voltage_settings[BITMAIN_MAX_CHAIN_NUM];
 
-#endif
+int getVolValueFromPICvoltage(unsigned char vol_pic);
 
+#endif
