@@ -10748,6 +10748,9 @@ void set_frequency_all_chains(int requested_freq)
         struct cgpu_info *bitmain_c5 = thr->cgpu;
         struct bitmain_c5_info *info = bitmain_c5->device_data;
 
+	if (opt_fixed_freq != true)
+		quit(1, "Mining in non-fixed-freq mode is not supported, use --fixed-freq");
+
 #ifdef DEBUG_LOG
         printf("!!! %s:%d\n", __FUNCTION__, __LINE__);
 #endif
