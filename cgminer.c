@@ -942,47 +942,71 @@ done:
 	return argc;
 }
 
-static const char *set_voltage(const char *s, int *volt)
-{
-	char *end;
-	double x = strtod(s, &end);
-	/* extract voltage bounds from coversion function */
-	int min = getVolValueFromPICvoltage(255);
-	int max = MIN(getVolValueFromPICvoltage(0), HIGHEST_VOLTAGE_LIMITED_HW);
-
-	if (*end)
-		return "voltage has to be float or empty";
-	int xx = x * 100;
-	if (xx < min || xx > max) {
-		applog(LOG_WARNING, "voltage range is [%.2lf,%.2lf]", min/100.0, max/100.0);
-		return "voltage out of range";
-	}
-	*volt = xx;
-	return 0;
-}
-
-static const char *set_voltages(const char *arg, int *voltages)
+static const char *parse_optlist(const char *arg, int *out, int out_size, const char *(*fn)(const char *s, int *ret))
 {
 	char *list = strdupa(arg);
 	int argc;
-	char *argv[BITMAIN_MAX_CHAIN_NUM];
+	char *argv[out_size];
 
+	/* parse list and fold errors */
 	argc = parse_list(list, argv, ARRAY_SIZE(argv), ',');
 	for (int i = 0; i < argc; i++) {
 		const char *s = argv[i];
-		/* if "*s" is empty, then leave default value */
-		/* otherwise parse as float */
-		if (*s) {
-			int vol;
-			const char *err = set_voltage(s, &vol);
+
+		/* if "s" is empty, leave "default" */
+		if (strlen(s) > 0) {
+			const char *err = fn(s, &out[i]);
 			if (err)
 				return err;
-			applog(LOG_INFO, "setting user voltage of (logical) chain %d to %d", i, vol);
-			voltages[i] = vol;
+			applog(LOG_NOTICE, "%p[%d] = %d", out, i, out[i]);
+		}
+	}
+	/* if only one argument was passed, copy it to the rest */
+	if (argc == 1) {
+		for (int i = 1; i < out_size; i++) {
+			out[i] = out[0];
+			applog(LOG_NOTICE, "%p[%d] = %d", out, i, out[i]);
 		}
 	}
 	return 0;
 }
+
+
+static const char *parse_voltage(const char *s, int *volt)
+{
+	char *end;
+	double x;
+
+	x = strtod(s, &end);
+	if (*end)
+		return "voltage has to be float or empty";
+	if (x < 7 || x > 10)
+		return "voltage out of range";
+	*volt = round(x * 100);
+	return 0;
+}
+
+static const char *parse_frequency(const char *s, int *freq)
+{
+	char *end;
+
+	*freq = strtoul(s, &end, 10);
+	if (*end)
+		return "frequency has to be integer";
+	return  0;
+}
+
+
+static const char *set_voltages(const char *arg, int *voltages)
+{
+	return parse_optlist(arg, voltages, BITMAIN_MAX_CHAIN_NUM, parse_voltage);
+}
+
+static const char *set_frequencies(const char *arg, int *freqs)
+{
+	return parse_optlist(arg, freqs, BITMAIN_MAX_CHAIN_NUM, parse_frequency);
+}
+
 
 void get_intrange(char *arg, int *val1, int *val2)
 {
@@ -1615,19 +1639,12 @@ static struct opt_table opt_config_table[] =
     "Set bitmain fan pwm percentage 0~100"),
 
     OPT_WITH_ARG("--bitmain-freq",
-    set_int_0_to_9999,opt_show_intval, &opt_bitmain_c5_freq,
-    "Set frequency"),
-
-#if 0
-    OPT_WITH_ARG("--bitmain-voltages",
-    set_voltages, 0, &chain_voltage_settings,
-    "Set voltages"),
-#endif
+    set_frequencies, 0, &chain_frequency_settings,
+    "Set frequencies"),
 
     OPT_WITH_ARG("--bitmain-voltage",
-    set_voltage, opt_show_intval, &opt_bitmain_c5_voltage,
-    "Set voltage"),
-
+    set_voltages, 0, &chain_voltage_settings,
+    "Set voltages"),
 
     OPT_WITHOUT_ARG("--fixed-freq",
     opt_set_bool, &opt_fixed_freq,
@@ -6017,6 +6034,7 @@ void write_config(FILE *fcfg)
                 continue;
             }
 
+#if 0
             if (opt->type & OPT_HASARG &&
                 ((void *)opt->cb_arg == set_voltage))
             {
@@ -6026,6 +6044,7 @@ void write_config(FILE *fcfg)
 		}
                 continue;
             }
+#endif
 
 
             if (opt->type & OPT_HASARG &&
