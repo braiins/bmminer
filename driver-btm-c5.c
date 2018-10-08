@@ -233,10 +233,13 @@ int nonce_times = 0;
 int rate_error[BITMAIN_MAX_CHAIN_NUM] = {0};
 char displayed_rate[BITMAIN_MAX_CHAIN_NUM][32];
 
+/* these are freq/voltage settings requested by user (numbered from first existent chain) */
 int chain_voltage_settings[BITMAIN_MAX_CHAIN_NUM] = {0};
 int chain_frequency_settings[BITMAIN_MAX_CHAIN_NUM] = {0};
+/* these are freq/voltage settings actually used (numbered by physical connection) */
 uint8_t chain_voltage_pic[BITMAIN_MAX_CHAIN_NUM] = {0xff};
 int chain_voltage_value[BITMAIN_MAX_CHAIN_NUM] = {0};
+int chain_frequency_value[BITMAIN_MAX_CHAIN_NUM] = {0};
 
 unsigned char hash_board_id[BITMAIN_MAX_CHAIN_NUM][12];
 
@@ -3962,7 +3965,7 @@ void set_Hardware_version(unsigned int value)
     }
 
 
-void set_frequency(int chain_id, int requested_freq)
+int set_frequency(int chain_id, int requested_freq)
 {
 	int freq_index;
 	int freq;
@@ -4001,9 +4004,10 @@ void set_frequency(int chain_id, int requested_freq)
 		set_frequency_with_addr_plldatai(freq_index, 0, j * dev->addrInterval, chain_id);
 	}
 
-	/* set "global" frequency variable to be minimum frequency of all chains */
-	if (dev->frequency > freq)
-		dev->frequency = freq;
+        /* remember what frequency was set */
+        chain_frequency_value[chain_id] = freq;
+
+	return freq;
 }
 
 void set_frequency_all_chains(int requested_freq)
@@ -4014,10 +4018,15 @@ void set_frequency_all_chains(int requested_freq)
 	dev->frequency = get_freqvalue_by_index(MAX_FREQ);
 
 	/* set frequency on each existing chain */
-        for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
-            if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
-		    set_frequency(i, requested_freq);
-	    }
+	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+		if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
+			int freq;
+			freq = set_frequency(i, requested_freq);
+
+			/* set "global" frequency variable to be minimum frequency of all chains */
+			if (freq < dev->frequency)
+				dev->frequency = freq;
+		}
 	}
 }
 
@@ -9403,6 +9412,21 @@ void set_frequency_all_chains(int requested_freq)
         //check chain
         check_chain();
 
+        /* check frequency settings */
+	applog(LOG_NOTICE, "frequency: min=%d max=%d default=%d\n", MIN_FREQ_X, MAX_FREQ_X, DEFAULT_FREQ_X);
+	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+		int freq = chain_frequency_settings[i];
+		if (freq == 0)
+			freq = DEFAULT_FREQ_X;
+		else if (freq < MIN_FREQ_X)
+			freq = MIN_FREQ_X;
+		else if (freq > MAX_FREQ_X)
+			freq = MAX_FREQ_X;
+
+		chain_frequency_settings[i] = freq;
+	}
+
+
 #ifdef T9_18
         for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
@@ -9600,23 +9624,24 @@ void set_frequency_all_chains(int requested_freq)
 
         if(isFixedFreqMode())
         {
-            int vol = getFixedFreqVoltageValue(config_parameter.frequency);
-
-            if (opt_bitmain_c5_voltage != 0) {
-                applog(LOG_NOTICE, "overriding global voltage from default %.2lfV to %.2lfV",
-                            vol / 100.0, opt_bitmain_c5_voltage / 100.0);
-                vol = opt_bitmain_c5_voltage;
-            }
+            int chain_id = 0;
 
             for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
             {
                 if(dev->chain_exist[i] == 1)
                 {
+                    int vol = getFixedFreqVoltageValue(chain_frequency_settings[chain_id]); /* FIXME*/
+
+                    int set_vol = chain_voltage_settings[chain_id];
+                    if (set_vol != 0) {
+                        applog(LOG_NOTICE,"chain %d: overriding global voltage from default %.2lfV to %.2lfV",
+                                    i, vol / 100.0, set_vol/ 100.0);
+                        vol = set_vol;
+                    }
+
                     chain_voltage_value[i] = vol;
                     chain_voltage_pic[i] = getPICvoltageFromValue(chain_voltage_value[i]);
-
-                    sprintf(logstr,"Fix freq=%d Chain[%d] voltage_pic=%d value=%d\n",config_parameter.frequency,i,chain_voltage_pic[i],chain_voltage_value[i]);
-                    writeInitLogFile(logstr);
+                    chain_id++;
                 }
             }
         }
@@ -9814,11 +9839,24 @@ void set_frequency_all_chains(int requested_freq)
 //    check_asic_reg(CHIP_ADDRESS);
 //    cgsleep_ms(10);
 
-        if(config_parameter.frequency_eft)
-        {
-            dev->frequency = config_parameter.frequency;
-            set_frequency_all_chains(dev->frequency);
-            sprintf(dev->frequency_t,"%u",dev->frequency);
+        if (config_parameter.frequency_eft) {
+		int chain_id = 0;
+
+		dev->frequency = MAX_FREQ_X;
+		for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+			if (dev->chain_exist[i] == 1) {
+				int freq = chain_frequency_settings[chain_id];
+
+				/* this configures the hardware */
+				set_frequency(i, freq);
+
+				/* keep minimum of frequencies to calculate timeout from */
+				if (freq < dev->frequency)
+					dev->frequency = freq;
+				chain_id++;
+			}
+		}
+		sprintf(dev->frequency_t,"%u",dev->frequency);
         }
 
         cgsleep_ms(10);
@@ -10784,8 +10822,8 @@ void set_frequency_all_chains(int requested_freq)
             .asic_num                       = 54,
             .fan_pwm_percent                = opt_bitmain_fan_pwm,
             .temperature                    = 80,
-            .frequency                      = opt_bitmain_c5_freq,
-            .voltage                        = {0x07,0x25},
+            .frequency                      = 0,
+            .voltage                        = {0},
             .chain_check_time_integer       = 10,
             .chain_check_time_fractions     = 10,
             .timeout_data_integer           = 0,

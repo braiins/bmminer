@@ -513,6 +513,9 @@ extern int MAX_FAN_PCB_TEMP;
 
 #define MIN_FREQ                4   // 8:300M   6:250M      4:200M
 #define MAX_FREQ                100 //850M
+#define MIN_FREQ_X		get_freqvalue_by_index(MIN_FREQ)
+#define MAX_FREQ_X		get_freqvalue_by_index(MAX_FREQ)
+#define DEFAULT_FREQ_X		600
 #define MAX_SW_TEMP_OFFSET      -15
 #define BMMINER_VERSION         3   // 3 for auto freq,  1 or 2 for normal ( the old version is 0)
 
