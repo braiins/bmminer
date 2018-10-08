@@ -958,14 +958,12 @@ static const char *parse_optlist(const char *arg, int *out, int out_size, const 
 			const char *err = fn(s, &out[i]);
 			if (err)
 				return err;
-			applog(LOG_NOTICE, "%p[%d] = %d", out, i, out[i]);
 		}
 	}
 	/* if only one argument was passed, copy it to the rest */
 	if (argc == 1) {
 		for (int i = 1; i < out_size; i++) {
 			out[i] = out[0];
-			applog(LOG_NOTICE, "%p[%d] = %d", out, i, out[i]);
 		}
 	}
 	return 0;
