@@ -3469,11 +3469,11 @@ void set_Hardware_version(unsigned int value)
     int get_pll_index_clamp(int freq)
     {
         if (freq == 0)
-            freq = DEFAULT_FREQ_X;
-        if (freq < MIN_FREQ_X)
-            freq = MIN_FREQ_X;
-        if (freq > MAX_FREQ_X)
-            freq = MAX_FREQ_X;
+            freq = DEFAULT_FREQ;
+        if (freq < MIN_FREQ)
+            freq = MIN_FREQ;
+        if (freq > MAX_FREQ)
+            freq = MAX_FREQ;
         return get_pll_index(freq);
     }
 
@@ -3682,7 +3682,7 @@ void set_Hardware_version(unsigned int value)
                     continue;
 
                 //down one step on highest chip, but freq must be > 250M
-                if(max_freq<=MIN_FREQ)
+                if(max_freq<=MIN_FREQ_INDEX)
                     continue;
                 else
                 {
@@ -3768,7 +3768,7 @@ void set_Hardware_version(unsigned int value)
         }
 
         //down one step on highest chip, but freq must be > 250M
-        if(max_freq<=MIN_FREQ)
+        if(max_freq<=MIN_FREQ_INDEX)
         {
             sprintf(logstr,"Fatal Error: DownOneChipFreqOneStep Chain[%d] has no chip can down freq!!!\n",max_rate_chainIndex);
             writeInitLogFile(logstr);
@@ -4036,7 +4036,7 @@ void set_frequency_all_chains(int requested_freq)
 int get_min_frequency(void)
 {
         int i;
-        int min_freq = MAX_FREQ_X;
+        int min_freq = MAX_FREQ;
 	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
 		if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
                         int freq = chain_frequency_value[i];
