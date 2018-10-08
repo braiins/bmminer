@@ -3451,7 +3451,6 @@ void set_Hardware_version(unsigned int value)
     /* always return _some_ valid index */
     int get_pll_index(int freq)
     {
-
         int i;
 	int n = sizeof(freq_pll_1385) / sizeof(freq_pll_1385[0]);
         for (i = 0; i < n; i++) {
@@ -3467,9 +3466,27 @@ void set_Hardware_version(unsigned int value)
         return i;
     }
 
+    int get_pll_index_clamp(int freq)
+    {
+        if (freq == 0)
+            freq = DEFAULT_FREQ_X;
+        if (freq < MIN_FREQ_X)
+            freq = MIN_FREQ_X;
+        if (freq > MAX_FREQ_X)
+            freq = MAX_FREQ_X;
+        return get_pll_index(freq);
+    }
+
     int get_freqvalue_by_index(int index)
     {
         return atoi(freq_pll_1385[index].freq);
+    }
+
+    int normalize_freq_clamp(int freq)
+    {
+        int index;
+        index = get_pll_index_clamp(freq);
+        return get_freqvalue_by_index(index);
     }
 
     int GetTotalRate()
@@ -3964,7 +3981,6 @@ void set_Hardware_version(unsigned int value)
         pthread_mutex_unlock(&init_log_mutex);
     }
 
-
 int set_frequency(int chain_id, int requested_freq)
 {
 	int freq_index;
@@ -3976,12 +3992,7 @@ int set_frequency(int chain_id, int requested_freq)
 	assert(dev->chain_asic_num[chain_id] > 0);
 
 	/* look-up frequency and clamp it if neccessary */
-	freq_index = get_pll_index(requested_freq);
-	if (freq_index < MIN_FREQ)
-		freq_index = MIN_FREQ;
-	if (freq_index > MAX_FREQ)
-		freq_index = MAX_FREQ;
-
+	freq_index = get_pll_index_clamp(requested_freq);
 	freq = get_freqvalue_by_index(freq_index);
 
         applog(LOG_NOTICE, "%s: chain_id=%d frequency %d MHz (index %d, was converted from %d)",
@@ -4014,20 +4025,26 @@ void set_frequency_all_chains(int requested_freq)
 {
 	int i;
 
-	/* set global frequency to MAX (=> longest timeout) */
-	dev->frequency = get_freqvalue_by_index(MAX_FREQ);
-
 	/* set frequency on each existing chain */
 	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
 		if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
-			int freq;
-			freq = set_frequency(i, requested_freq);
-
-			/* set "global" frequency variable to be minimum frequency of all chains */
-			if (freq < dev->frequency)
-				dev->frequency = freq;
+			set_frequency(i, requested_freq);
 		}
 	}
+}
+
+int get_min_frequency(void)
+{
+        int i;
+        int min_freq = MAX_FREQ_X;
+	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+		if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
+                        int freq = chain_frequency_value[i];
+                        if (freq < min_freq)
+                                min_freq = freq;
+		}
+	}
+        return min_freq;
 }
 
 
@@ -9412,21 +9429,6 @@ void set_frequency_all_chains(int requested_freq)
         //check chain
         check_chain();
 
-        /* check frequency settings */
-	applog(LOG_NOTICE, "frequency: min=%d max=%d default=%d\n", MIN_FREQ_X, MAX_FREQ_X, DEFAULT_FREQ_X);
-	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
-		int freq = chain_frequency_settings[i];
-		if (freq == 0)
-			freq = DEFAULT_FREQ_X;
-		else if (freq < MIN_FREQ_X)
-			freq = MIN_FREQ_X;
-		else if (freq > MAX_FREQ_X)
-			freq = MAX_FREQ_X;
-
-		chain_frequency_settings[i] = freq;
-	}
-
-
 #ifdef T9_18
         for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
@@ -9630,7 +9632,8 @@ void set_frequency_all_chains(int requested_freq)
             {
                 if(dev->chain_exist[i] == 1)
                 {
-                    int vol = getFixedFreqVoltageValue(chain_frequency_settings[chain_id]); /* FIXME*/
+                    int freq = normalize_freq_clamp(chain_frequency_settings[chain_id]);
+                    int vol = getFixedFreqVoltageValue(freq);
 
                     int set_vol = chain_voltage_settings[chain_id];
                     if (set_vol != 0) {
@@ -9842,7 +9845,6 @@ void set_frequency_all_chains(int requested_freq)
         if (config_parameter.frequency_eft) {
 		int chain_id = 0;
 
-		dev->frequency = MAX_FREQ_X;
 		for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
 			if (dev->chain_exist[i] == 1) {
 				int freq = chain_frequency_settings[chain_id];
@@ -9850,12 +9852,10 @@ void set_frequency_all_chains(int requested_freq)
 				/* this configures the hardware */
 				set_frequency(i, freq);
 
-				/* keep minimum of frequencies to calculate timeout from */
-				if (freq < dev->frequency)
-					dev->frequency = freq;
 				chain_id++;
 			}
 		}
+                dev->frequency = get_min_frequency();
 		sprintf(dev->frequency_t,"%u",dev->frequency);
         }
 
