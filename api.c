@@ -2251,9 +2251,12 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 	char *enabled;
 	char *status;
 
-	float temp = dev->chain_asic_maxtemp[i][TEMP_POS_LOCAL];
-	float temp_max = dev->chain_asic_temp[i][0][TEMP_POS_MIDDLE];
-	float temp_min = dev->chain_asic_temp[i][1][TEMP_POS_MIDDLE];
+	float temp_local = dev->chain_asic_maxtemp[i][TEMP_POS_LOCAL];
+	float temp_middle = dev->chain_asic_maxtemp[i][TEMP_POS_MIDDLE];
+	float temp_bottom = dev->chain_asic_maxtemp[i][TEMP_POS_BOTTOM];
+	float temp_max = MAX(MAX(temp_local, temp_middle), temp_bottom);
+	float temp_min = MIN(MIN(temp_local, temp_middle), temp_bottom);
+	float temp = temp_max;
 
 	if (cgpu->deven != DEV_DISABLED)
 		enabled = (char *)YES;
