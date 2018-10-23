@@ -1922,6 +1922,7 @@ static char *json_array_string(json_t *val, unsigned int entry)
 static char *blank_merkle = "0000000000000000000000000000000000000000000000000000000000000000";
 
 #define VERSION_BITS_NUM 2
+#define VERSION_BITS_THAT_S9_ROLLS 0x00c00000
 #if MIDSTATE_NUM != (1UL << VERSION_BITS_NUM)
 #error Incompatible number of midstates and version bits to roll!
 #endif
@@ -2203,6 +2204,14 @@ static bool decode_version_mask(struct pool *pool, json_t *version_mask_json)
     detect_bit_mask = 1;
     bit_idx = 0;
     component_idx = 0;
+
+    /* If version mask doesn't support bits we can roll, bail out */
+    if ((version_mask & VERSION_BITS_THAT_S9_ROLLS) != VERSION_BITS_THAT_S9_ROLLS) {
+        applog(LOG_ERR, "Received version mask (0x%08lx) doesn't satisfy hardware requirement (0x%08lx)",
+                           version_mask, VERSION_BITS_THAT_S9_ROLLS);
+        retval = false;
+        goto invalid_version_mask;
+    }
 
     /* Scan the version mask and extract masks for individual bits to satisfy
      * the number of version bits */
