@@ -7697,17 +7697,17 @@ static void *stratum_sthread(void *userdata)
         sshare->id = swork_id++;
         mutex_unlock(&sshare_lock);
 
+#ifdef USE_BITMAIN_C5
+	uint32_t nversion = (uint32_t)strtoul(pool->bbversion, NULL, 16);
+	uint32_t nversionbe = htobe32(work->version);
+	uint32_t smask = nversion;
+	smask ^= nversionbe;
+	applog(LOG_ERR, "Version submitting share mask 0x%08" PRIx32 " with work version 0x%08" PRIx32 " and pool version 0x%08" PRIx32, smask, nversionbe, nversion);
+#endif
+
         if(pool->support_vil)
         {
-            snprintf(s, sizeof(s),
-                     "{\"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%08x\"], \"id\": %d, \"method\": \"mining.submit\"}",
-                     pool->rpc_user,
-                     work->job_id,
-                     nonce2hex,
-                     work->ntime,
-                     noncehex,
-                     swab32(work->version),
-                     sshare->id);
+	    snprintf(s, sizeof(s), "{\"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%08" PRIx32 "\"], \"id\": %d, \"method\": \"mining.submit\"}", pool->rpc_user, work->job_id, nonce2hex, work->ntime, noncehex, smask, sshare->id);
         }
         else
         {

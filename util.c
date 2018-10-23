@@ -2415,14 +2415,6 @@ bool parse_method(struct pool *pool, char *s)
     if (!buf)
         goto out_decref;
 
-    if (!strncasecmp(buf, "mining.multi_version", 20))
-    {
-        pool->support_vil = true;
-        applog(LOG_INFO,"Pool support multi version");
-        ret = parse_version(pool, params);
-        goto out_decref;
-    }
-
     if (!strncasecmp(buf, "mining.notify", 13))
     {
         if (parse_notify(pool, params))
@@ -3148,6 +3140,9 @@ static bool configure_stratum_mining(struct pool *pool)
     }
     /* Valid configuration for now only requires enabled version rolling and valid bit mask */
     config_status = version_rolling_status && version_mask_valid;
+    if (config_status) {
+        pool->support_vil = true;
+    }
 
   json_response_error:
     json_decref(response);
