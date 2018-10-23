@@ -76,6 +76,7 @@ typedef long json_int_t;
 #define json_is_true(json)     (json && json_typeof(json) == JSON_TRUE)
 #define json_is_false(json)    (json && json_typeof(json) == JSON_FALSE)
 #define json_is_boolean(json)  (json_is_true(json) || json_is_false(json))
+#define json_boolean_value     json_is_true
 #define json_is_null(json)     (json && json_typeof(json) == JSON_NULL)
 
 /* construction, destruction, reference counting */

@@ -1921,6 +1921,13 @@ static char *json_array_string(json_t *val, unsigned int entry)
 
 static char *blank_merkle = "0000000000000000000000000000000000000000000000000000000000000000";
 
+#define VERSION_BITS_NUM 2
+#if MIDSTATE_NUM != (1UL << VERSION_BITS_NUM)
+#error Incompatible number of midstates and version bits to roll!
+#endif
+
+struct block_version n_version[MIDSTATE_NUM];
+
 static bool parse_notify(struct pool *pool, json_t *val)
 {
     char *job_id, *prev_hash, *coinbase1, *coinbase2, *bbversion, *nbit,
@@ -2185,7 +2192,7 @@ static bool decode_version_mask(struct pool *pool, json_t *version_mask_json)
     bool retval = true;
 
     if (!version_mask_json) {
-        applog_hw(LOG_ERR, "Received empty version mask!");
+        applog(LOG_ERR, "Received empty version mask!");
         retval = false;
         goto invalid_version_mask;
     }
@@ -2208,7 +2215,7 @@ static bool decode_version_mask(struct pool *pool, json_t *version_mask_json)
     }
 
     if (component_idx != VERSION_BITS_NUM) {
-        applog_hw(LOG_ERR, "Received version mask (0x%08lx) doesn't satisfy hardware requirement (detected %d bits, "
+        applog(LOG_ERR, "Received version mask (0x%08lx) doesn't satisfy hardware requirement (detected %d bits, "
                            "required %d bits)", version_mask, component_idx, VERSION_BITS_NUM);
         retval = false;
         goto invalid_version_mask;

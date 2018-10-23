@@ -1146,6 +1146,23 @@ extern int opt_bitmain_overheat;
 extern char *set_bitmain_fan(char *arg);
 extern int opt_bitmain_temp;
 
+extern char *workpadding;
+
+#define MIDSTATE_NUM 4
+
+/** Stores version data for a particular midstate */
+struct block_version {
+	/** Full version field in big endian to be submitted as part of the job */
+	uint32_t value_big_endian;
+	/** Version bits */
+	uint32_t bits;
+	/** Precalculated representation of */
+	char bits_str[9];
+};
+
+extern struct block_version n_version[MIDSTATE_NUM];
+
+
 #define NONCE_BUFF 4096
 extern char nonce_num10_string[NONCE_BUFF];
 extern char nonce_num30_string[NONCE_BUFF];
