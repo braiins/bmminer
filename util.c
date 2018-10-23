@@ -3150,7 +3150,7 @@ static bool configure_stratum_mining(struct pool *pool)
     /* Valid configuration for now only requires enabled version rolling and valid bit mask */
     config_status = version_rolling_status && version_mask_valid;
     if (config_status) {
-        pool->support_vil = true;
+        pool->supports_version_rolling = true;
     }
 
   json_response_error:

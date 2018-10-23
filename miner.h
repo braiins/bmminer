@@ -1297,7 +1297,7 @@ struct pool
     bool stratum_init;
     bool stratum_notify;
 #ifdef USE_BITMAIN_C5
-    bool support_vil;
+    bool supports_version_rolling;
     int version_num;
     int version[4];
 #endif

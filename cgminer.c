@@ -735,7 +735,7 @@ struct pool *add_pool(void)
     pool = cgcalloc(sizeof(struct pool), (size_t)1);
 
 #ifdef USE_BITMAIN_C5
-    pool->support_vil = false; // TODO: why does S9 not support vil mode?
+    pool->supports_version_rolling = false;
 #endif
 
     if (!pool)
@@ -7705,7 +7705,7 @@ static void *stratum_sthread(void *userdata)
 	applog(LOG_ERR, "Version submitting share mask 0x%08" PRIx32 " with work version 0x%08" PRIx32 " and pool version 0x%08" PRIx32, smask, nversionbe, nversion);
 #endif
 
-        if(pool->support_vil)
+        if(pool->supports_version_rolling)
         {
 	    snprintf(s, sizeof(s), "{\"params\": [\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%08" PRIx32 "\"], \"id\": %d, \"method\": \"mining.submit\"}", pool->rpc_user, work->job_id, nonce2hex, work->ntime, noncehex, smask, sshare->id);
         }
@@ -8333,7 +8333,6 @@ void get_work_by_nonce2(struct thr_info *thr,
     struct device_drv *drv = cgpu->drv;
     cg_wlock(&pool->data_lock);
     pool->nonce2 = nonce2;
-    //if(pool->support_vil) // comment as default
     version = Swap32(version);
     cg_memcpy(pool->header_bin, &version, 4);
     cg_wunlock(&pool->data_lock);
