@@ -11160,6 +11160,9 @@ int get_min_frequency(void)
         if (!pool->has_stratum)
             quit(1, "Bitmain S9 has to use stratum pools");
 
+        if (opt_multi_version > 1 && !pool->supports_version_rolling)
+            quit(1, "Requested multi-version=%d, but pool doesn't support version rolling!", opt_multi_version);
+
         /* Step 3: Parse job to c5 formart */
         cg_wlock(&info->update_lock);
         cg_rlock(&pool->data_lock);
