@@ -511,11 +511,8 @@ extern int MAX_FAN_PCB_TEMP;
 
 #define MAX_TEMPCHIP_NUM        8   // support 8 chip has temp
 
-#define MIN_FREQ		200
-#define MAX_FREQ		850
-#define MIN_FREQ_INDEX          get_pll_index(MIN_FREQ)
-#define MAX_FREQ_INDEX          get_pll_index(MAX_FREQ)
-#define DEFAULT_FREQ		600
+#define MIN_FREQ                4   // 8:300M   6:250M      4:200M
+#define MAX_FREQ                100 //850M
 #define MAX_SW_TEMP_OFFSET      -15
 #define BMMINER_VERSION         3   // 3 for auto freq,  1 or 2 for normal ( the old version is 0)
 
@@ -918,7 +915,7 @@ extern char displayed_rate[BITMAIN_MAX_CHAIN_NUM][32];
 extern unsigned char last_freq[BITMAIN_MAX_CHAIN_NUM][256];
 extern int chain_badcore_num[BITMAIN_MAX_CHAIN_NUM][256];
 
-extern int get_pll_index(int freq);
+int get_pll_index(int freq);
 
 extern uint32_t g_accepted[BITMAIN_MAX_CHAIN_NUM];
 extern uint32_t g_rejected[BITMAIN_MAX_CHAIN_NUM];
@@ -929,3 +926,4 @@ extern int chain_frequency_settings[BITMAIN_MAX_CHAIN_NUM];
 int getVolValueFromPICvoltage(unsigned char vol_pic);
 
 #endif
+
