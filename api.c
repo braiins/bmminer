@@ -4641,7 +4641,7 @@ static void tail_join(struct io_data *io_data, bool isjson)
     }
 }
 
-static void send_result(struct io_data *io_data, SOCKETTYPE c, bool isjson)
+static void send_result(struct io_data *io_data, SOCKETTYPE c, bool isjson, bool end_with_nul)
 {
     int count, sendc, res, tosend, len, n;
     char *buf = io_data->ptr;
@@ -4655,7 +4655,7 @@ static void send_result(struct io_data *io_data, SOCKETTYPE c, bool isjson)
         strcat(buf, JSON_END);
 
     len = strlen(buf);
-    tosend = len+1;
+    tosend = end_with_nul ? len + 1 : len;
 
     applog(LOG_DEBUG, "API: send reply: (%d) '%.10s%s'", tosend, buf, len > 10 ? "..." : BLANK);
 
@@ -5382,6 +5382,7 @@ void api(int api_thr_id)
     json_t *json_config = NULL;
     json_t *json_val;
     bool isjson;
+    bool end_with_nul;
     bool did, isjoin = false, firstjoin;
     int i;
     struct addrinfo hints, *res, *host;
@@ -5523,12 +5524,15 @@ void api(int api_thr_id)
             goto die;
         }
 
+	/* XXX: serve all clients sequentially */
+
         addrok = check_connect((struct sockaddr_storage *)&cli, &connectaddr, &group);
         applog(LOG_DEBUG, "API: connection from %s - %s",
                connectaddr, addrok ? "Accepted" : "Ignored");
 
         if (addrok)
         {
+	    /* XXX: if request arrives in two packets, only the first gets processed */
             n = recv(c, &buf[0], TMPBUFSIZ-1, 0);
             if (SOCKETFAIL(n))
                 buf[0] = '\0';
@@ -5551,19 +5555,26 @@ void api(int api_thr_id)
 
                 did = false;
 
-                if (*buf != ISJSON)
-                {
-                    isjson = false;
 
-                    param = strchr(buf, SEPARATOR);
-                    if (param != NULL)
-                        *(param++) = '\0';
-
-                    cmd = buf;
-                }
-                else
-                {
+                if (strncmp(buf, "GET /", 5) == 0) {
+                    char *ptr = buf + 5;
+                    char *end = strchr(ptr, ' ');
                     isjson = true;
+                    end_with_nul = false;
+                    param = NULL;
+                    cmd = NULL;
+                    io_add(io_data, "HTTP/1.1 200 OK\nContent-Type: application/json\nAccess-Control-Allow-Origin: *\n\n");
+                    if (!end) {
+                        message(io_data, MSG_MISCMD, 0, NULL, isjson);
+                        send_result(io_data, c, isjson, end_with_nul);
+                        did = true;
+                    } else {
+                        *end = 0;
+                        cmd = ptr;
+                    }
+                } else if (*buf == ISJSON) {
+                    isjson = true;
+                    end_with_nul = true;
 
                     param = NULL;
 
@@ -5572,7 +5583,7 @@ void api(int api_thr_id)
                     if (!json_is_object(json_config))
                     {
                         message(io_data, MSG_INVJSON, 0, NULL, isjson);
-                        send_result(io_data, c, isjson);
+                        send_result(io_data, c, isjson, end_with_nul);
                         did = true;
                     }
                     else
@@ -5581,7 +5592,7 @@ void api(int api_thr_id)
                         if (json_val == NULL)
                         {
                             message(io_data, MSG_MISCMD, 0, NULL, isjson);
-                            send_result(io_data, c, isjson);
+                            send_result(io_data, c, isjson, end_with_nul);
                             did = true;
                         }
                         else
@@ -5589,7 +5600,7 @@ void api(int api_thr_id)
                             if (!json_is_string(json_val))
                             {
                                 message(io_data, MSG_INVCMD, 0, NULL, isjson);
-                                send_result(io_data, c, isjson);
+                                send_result(io_data, c, isjson, end_with_nul);
                                 did = true;
                             }
                             else
@@ -5611,6 +5622,15 @@ void api(int api_thr_id)
                             }
                         }
                     }
+                } else {
+                    isjson = false;
+                    end_with_nul = true;
+
+                    param = strchr(buf, SEPARATOR);
+                    if (param != NULL)
+                        *(param++) = '\0';
+
+                    cmd = buf;
                 }
 
                 if (!did)
@@ -5676,7 +5696,7 @@ void api(int api_thr_id)
 
                                 did = true;
                                 if (!isjoin)
-                                    send_result(io_data, c, isjson);
+                                    send_result(io_data, c, isjson, end_with_nul);
                                 else
                                     tail_join(io_data, isjson);
                                 break;
@@ -5691,7 +5711,7 @@ void api(int api_thr_id)
                             if (isjoin)
                                 tail_join(io_data, isjson);
                             else
-                                send_result(io_data, c, isjson);
+                                send_result(io_data, c, isjson, end_with_nul);
                         }
                     inochi:
                         if (isjoin)
@@ -5701,7 +5721,7 @@ void api(int api_thr_id)
                 }
 
                 if (isjoin)
-                    send_result(io_data, c, isjson);
+                    send_result(io_data, c, isjson, end_with_nul);
 
                 if (isjson && json_is_object(json_config))
                     json_decref(json_config);
