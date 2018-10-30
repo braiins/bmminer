@@ -2250,6 +2250,7 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 	struct api_data *root = NULL;
 	char *enabled;
 	char *status;
+	bool copy_data = true;
 
 	float temp_local = dev->chain_asic_maxtemp[i][TEMP_POS_LOCAL];
 	float temp_middle = dev->chain_asic_maxtemp[i][TEMP_POS_MIDDLE];
@@ -2265,17 +2266,17 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 
 	status = (char *)status2str(cgpu->status);
 
-	root = api_add_int(root, "ASC", &devid, false);
-	root = api_add_string(root, "Name", cgpu->drv->name, false);
-	root = api_add_int(root, "ID", &devid, false);
-	root = api_add_string(root, "Enabled", enabled, false);
-	root = api_add_string(root, "Status", status, false);
+	root = api_add_int(root, "ASC", &devid, copy_data);
+	root = api_add_string(root, "Name", cgpu->drv->name, copy_data);
+	root = api_add_int(root, "ID", &devid, copy_data);
+	root = api_add_string(root, "Enabled", enabled, copy_data);
+	root = api_add_string(root, "Status", status, copy_data);
 
-	root = api_add_temp(root, "TempAVG", &temp, false);
-	root = api_add_temp(root, "TempMAX", &temp_max, false);
-	root = api_add_temp(root, "TempMIN", &temp_min, false);
-	root = api_add_uint8(root, "CHIP", &(dev->chain_asic_num[i]), false);
-	//root = api_add_int(root, "CORE", &(dev->chain_asic_num[i]), false);
+	root = api_add_temp(root, "TempAVG", &temp, copy_data);
+	root = api_add_temp(root, "TempMAX", &temp_max, copy_data);
+	root = api_add_temp(root, "TempMIN", &temp_min, copy_data);
+	root = api_add_uint8(root, "CHIP", &(dev->chain_asic_num[i]), copy_data);
+	//root = api_add_int(root, "CORE", &(dev->chain_asic_num[i]), copy_data);
 	{
             	double dev_sum_freq=0;
 		int j = 0;
@@ -2301,15 +2302,15 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
                 root = api_add_mhs(root, "FREQ", &dev_sum_freq, true);
 	}
 
-	root = api_add_uint(root, "DUTY", &(dev->fan_speed_value[i]), false);
+	root = api_add_uint(root, "DUTY", &(dev->fan_speed_value[i]), copy_data);
 	double mhs = atof(displayed_rate[i]) * 1000;
-	root = api_add_mhs(root, "MHS av", &mhs, false);
+	root = api_add_mhs(root, "MHS av", &mhs, copy_data);
 	char mhsname[27];
 	sprintf(mhsname, "MHS %ds", opt_log_interval);
-	root = api_add_mhs(root, mhsname, &mhs, false);
-	root = api_add_mhs(root, "MHS 1m", &mhs, false);
-	root = api_add_mhs(root, "MHS 5m", &mhs, false);
-	root = api_add_mhs(root, "MHS 15m", &mhs, false);
+	root = api_add_mhs(root, mhsname, &mhs, copy_data);
+	root = api_add_mhs(root, "MHS 1m", &mhs, copy_data);
+	root = api_add_mhs(root, "MHS 5m", &mhs, copy_data);
+	root = api_add_mhs(root, "MHS 15m", &mhs, copy_data);
 	{
                 double dev_sum_freq=0;
 		int j = 0;
@@ -2335,13 +2336,13 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 		dev_sum_freq *= 1000.0;
 		/* Nominal MHS is the theoretical limit for fully working
 		   chain */
-		root = api_add_mhs(root, "nominal MHS", &dev_sum_freq, false);
+		root = api_add_mhs(root, "nominal MHS", &dev_sum_freq, copy_data);
 		/* Maximal MHS takes into account number of enabled cores */
-		root = api_add_mhs(root, "maximal MHS", &dev_sum_freq, false);
+		root = api_add_mhs(root, "maximal MHS", &dev_sum_freq, copy_data);
 	}
-	root = api_add_int(root, "Accepted", &g_accepted[i], false);
-	root = api_add_int(root, "Rejected", &g_rejected[i], false);
-	root = api_add_int(root, "Hardware Errors", &(dev->chain_hw[i]), false);
+	root = api_add_int(root, "Accepted", &g_accepted[i], copy_data);
+	root = api_add_int(root, "Rejected", &g_rejected[i], copy_data);
+	root = api_add_int(root, "Hardware Errors", &(dev->chain_hw[i]), copy_data);
 
 	root = print_data(io_data, root, isjson, devid > 0);
 }
@@ -2777,6 +2778,7 @@ static void poolstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
         //root = api_add_time(root, "Last Share Time", &(pool->last_share_time), false);
         root = api_add_string(root, "Last Share Time", lasttime, false);
         root = api_add_string(root, "Diff", pool->diff, false);
+        root = api_add_double(root, "LastDiff", &pool->cgminer_pool_stats.last_diff, false);
         root = api_add_int64(root, "Diff1 Shares", &(pool->diff1), false);
         if (pool->rpc_proxy)
         {
@@ -2793,6 +2795,8 @@ static void poolstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
         root = api_add_diff(root, "Difficulty Stale", &(pool->diff_stale), false);
         root = api_add_diff(root, "Last Share Difficulty", &(pool->last_share_diff), false);
         root = api_add_bool(root, "Has Stratum", &(pool->has_stratum), false);
+	bool asic_boost = opt_multi_version == 4;
+        root = api_add_bool(root, "Asic Boost", &(asic_boost), false);
         root = api_add_bool(root, "Stratum Active", &(pool->stratum_active), false);
         if (pool->stratum_active)
             root = api_add_escape(root, "Stratum URL", pool->stratum_url, false);
@@ -3682,7 +3686,7 @@ static void minerstats(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
     root = api_add_string(root, "Type", g_miner_type, false);
     root = print_data(io_data, root, isjson, false);
 
-    i = 0;
+    i = 1;
     for (j = 0; j < total_devices; j++)
     {
         cgpu = get_devices(j);

@@ -12050,6 +12050,16 @@ void set_frequency(void)
             sprintf(fan_name,"fan%d", i+1);
             root = api_add_uint(root, fan_name, &(dev->fan_speed_value[i]), copy_data);
         }
+        for(i = 0; i < BITMAIN_MAX_FAN_NUM; i++)
+        {
+            char vol_name[12];
+            sprintf(vol_name,"voltage%d", i+1);
+            double vol_value = 0;
+            if (dev->chain_exist[i] == 1) {
+                vol_value = getVolValueFromPICvoltage(chain_voltage_pic[i]) / 100.0;
+	    }
+            root = api_add_double(root, vol_name, &vol_value, copy_data);
+        }
         root = api_add_uint8(root, "temp_num", &(dev->chain_num), copy_data);
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
