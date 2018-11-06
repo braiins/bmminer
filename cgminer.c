@@ -316,6 +316,8 @@ char g_miner_version[256] = {0};
 char g_miner_compiletime[256] = {0};
 char g_miner_type[256] = {0};
 
+struct timed_avg w_rolling1m, w_rolling15m, w_rolling24h;
+
 double rolling1, rolling5, rolling15;
 double total_rolling;
 double total_mhashes_done;
@@ -6132,12 +6134,18 @@ void zero_stats(void)
     }
 
     cgtime(&total_tv_start);
+    time_t now_t = total_tv_start.tv_sec;
     copy_time(&tv_hashmeter, &total_tv_start);
 
     total_rolling      = 0;
     rolling1           = 0;
     rolling5           = 0;
     rolling15          = 0;
+
+    avg_reset(&w_rolling1m);
+    avg_reset(&w_rolling15m);
+    avg_reset(&w_rolling24h);
+
     total_mhashes_done = 0;
     new_total_mhashes_done = 0;
 
@@ -7159,15 +7167,20 @@ static void hashmeter(int thr_id, uint64_t hashes_done)
             local_mhashes_done = hashes_done;
         }
 
-        // decay_time(&total_rolling, hashes_done, tv_tdiff, opt_log_interval);
+        //decay_time(&total_rolling, hashes_done, tv_tdiff, opt_log_interval);
         decay_time(&total_rolling, (double)(local_mhashes_done / 1), opt_log_interval, opt_log_interval);
         decay_time(&rolling1, (double)(hashes_done / 1), tv_tdiff, 60.0);
         decay_time(&rolling5, (double)(hashes_done / 1),tv_tdiff, 300.0);
         decay_time(&rolling15, (double)(hashes_done / 1), tv_tdiff, 900.0);
+
+
         global_hashrate = (unsigned long long int) (total_rolling * 1000000ull);
 
         g_local_mhashes_dones[g_local_mhashes_index] = 0;
     }
+    avg_insert(&w_rolling1m, now_t, (double)hashes_done);
+    avg_insert(&w_rolling15m, now_t, (double)hashes_done);
+    avg_insert(&w_rolling24h, now_t, (double)hashes_done);
 
     g_local_mhashes_dones[g_local_mhashes_index] += hashes_done;
 //    total_secs = tdiff(&total_tv_end, &total_tv_start);
@@ -11569,6 +11582,10 @@ int main(int argc, char *argv[])
     rwlock_init(&devices_lock);
 
     mutex_init(&lp_lock);
+
+    avg_init(&w_rolling1m, 60);
+    avg_init(&w_rolling15m, 60 * 15);
+    avg_init(&w_rolling24h, 60 * 60 * 24);
 
     if (unlikely(pthread_cond_init(&lp_cond, NULL)))
     {

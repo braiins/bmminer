@@ -264,6 +264,9 @@ unsigned char base_freq_index[BITMAIN_MAX_CHAIN_NUM] = {0};
 int x_time[BITMAIN_MAX_CHAIN_NUM][256] = {0};
 int temp_offside[BITMAIN_MAX_CHAIN_NUM] = {0};
 
+#define CHAIN_ERROR_RATE_WINDOW_SEC (60*60)
+struct timed_avg chain_error_rate[BITMAIN_MAX_CHAIN_NUM];
+
 static bool global_stop = false;
 
 //Test Core
@@ -11109,6 +11112,15 @@ void set_frequency(void)
         startCheckNetworkJob=true;
 
         setStartTimePoint();
+
+	/* initialize hw error counters */
+	struct timeval now;
+	cgtime(&now);
+	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+		avg_init(&chain_error_rate[i], CHAIN_ERROR_RATE_WINDOW_SEC);
+		/* start averaging right away*/
+		avg_insert(&chain_error_rate[i], now.tv_sec, 0);
+	}
         return 0;
     }
 
@@ -11674,6 +11686,15 @@ void set_frequency(void)
         for (i = 0; i < length/4; i++)
             dest[i] = swab32(src[i]);
     }
+    void chain_hw_error(struct thr_info *thr, int chain_id)
+    {
+	struct timeval now;
+
+	inc_hw_errors(thr);
+	dev->chain_hw[chain_id]++;
+        cgtime(&now);
+	avg_insert(&chain_error_rate[chain_id], now.tv_sec, 1);
+    }
     static uint64_t hashtest_submit(struct thr_info *thr, struct work *work, uint32_t nonce, uint8_t *midstate,struct pool *pool,uint64_t nonce2,uint32_t chain_id )
     {
         unsigned char hash1[32];
@@ -11742,8 +11763,7 @@ void set_frequency(void)
         {
             if(dev->chain_exist[chain_id] == 1)
             {
-                inc_hw_errors(thr);
-                dev->chain_hw[chain_id]++;
+		chain_hw_error(thr, chain_id);
             }
             //inc_hw_errors_with_diff(thr,(0x01UL << DEVICE_DIFF));
             //dev->chain_hw[chain_id]+=(0x01UL << DEVICE_DIFF);
@@ -11858,8 +11878,7 @@ void set_frequency(void)
 #ifdef DEBUG_LOG
                     printf("!!! %s:%d: HW error\n", __FUNCTION__, __LINE__);
 #endif
-                    inc_hw_errors(thr);
-                    dev->chain_hw[chain_id]++;
+		    chain_hw_error(thr, chain_id);
                 }
                 continue;
             }
@@ -11873,8 +11892,7 @@ void set_frequency(void)
 #ifdef DEBUG_LOG
                     printf("!!! %s:%d: HW error\n", __FUNCTION__, __LINE__);
 #endif
-                    inc_hw_errors(thr);
-                    dev->chain_hw[chain_id]++;
+		    chain_hw_error(thr, chain_id);
                 }
                 continue;
             }
@@ -11899,8 +11917,7 @@ void set_frequency(void)
 #ifdef DEBUG_LOG
                         printf("!!! %s:%d: HW error (%d - %d, %p, %p, %p)\n", __FUNCTION__, __LINE__, given_id, job_id, pool_stratum0, pool_stratum1, pool_stratum2);
 #endif
-                        inc_hw_errors(thr);
-                        dev->chain_hw[chain_id]++;
+			chain_hw_error(thr, chain_id);
                     }
                     continue;
             }
@@ -12376,6 +12393,17 @@ void set_frequency(void)
             sprintf(chain_hw,"chain_hw%d",i+1);
             root = api_add_uint32(root, chain_hw, &(dev->chain_hw[i]), copy_data);
         }
+        for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
+        {
+            char chain_hw[32];
+	    struct timeval now;
+	    double rate;
+	    cgtime(&now);
+	    rate = avg_getavg(&chain_error_rate[i], now.tv_sec) * CHAIN_ERROR_RATE_WINDOW_SEC;
+            snprintf(chain_hw, sizeof(chain_hw), "chain_hwrate%d", i+1);
+            root = api_add_double(root, chain_hw, &rate, copy_data);
+        }
+
 
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {

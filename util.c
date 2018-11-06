@@ -4015,3 +4015,80 @@ void cg_logwork_uint32(struct work *work, uint32_t nonce, bool ok)
         cg_logwork(work, nonce_bin, ok);
     }
 }
+
+void
+avg_dump(struct timed_avg *ta)
+{
+	printf("%p: fwin=%s fsamp=%s last=%lf sum=%lf start=%lf int=%lf\n",
+		ta,
+		ta->first_window ? "yes" : "no",
+		ta->first_sample? "yes" : "no",
+		ta->last, ta->sum,
+		ta->t_start,
+		ta->interval);
+}
+
+void
+avg_reset(struct timed_avg *ta)
+{
+	ta->last = ta->sum = 0;
+	ta->t_start = 0;
+	ta->first_window = true;
+	ta->first_sample = true;
+}
+
+void
+avg_init(struct timed_avg *ta, double interval)
+{
+	avg_reset(ta);
+	ta->interval = interval;
+}
+
+double
+avg_getavg(struct timed_avg *ta, double now)
+{
+	/* not initialized? */
+	if (ta->interval == 0)
+		return 0;
+	/* nothing measured yet? */
+	if (ta->first_sample)
+		return 0;
+	/* are we in the first window? */
+	if (ta->first_window && now > ta->t_start) {
+		/* do not take into account previous (zero) window */
+		return ta->sum / (now - ta->t_start);
+	}
+
+	/* we haven't been updated in a window's worth of time */
+	if (now >= ta->t_start + ta->interval)
+		return ta->sum / (now - ta->t_start);
+
+	/* how far are we into current window, p < 1 */
+	double p = (now - ta->t_start) / ta->interval;
+	/* interpolate between this and previous window */
+	return (ta->sum + ta->last * (1 - p)) / ta->interval;
+}
+
+void
+avg_insert(struct timed_avg *ta, double now, double x)
+{
+#if 0
+	printf("inserting sample %lf into %p\n", x, ta);
+#endif
+	if (ta->first_sample) {
+		ta->t_start = now;
+		ta->first_sample = false;
+	}
+
+	/* is window full? */
+	double since_start = now - ta->t_start;
+
+	if (ta->interval > 0 && since_start >= ta->interval) {
+		ta->last = ta->sum / since_start * ta->interval;
+		ta->sum = 0;
+		ta->t_start = now;
+		ta->first_window = false;
+	}
+
+	ta->sum += x;
+}

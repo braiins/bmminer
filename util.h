@@ -184,4 +184,20 @@ static inline void align_len(size_t *len)
 		*len += 4 - (*len % 4);
 }
 
+struct timed_avg {
+	double last;
+	double sum;
+	double t_start, t_prev;
+	double interval;
+	bool first_window, first_sample;
+};
+
+void avg_reset(struct timed_avg *ta);
+void avg_init(struct timed_avg *ta, double interval);
+void avg_insert(struct timed_avg *ta, double now, double x);
+double avg_getavg(struct timed_avg *ta, double now);
+void avg_dump(struct timed_avg *ta);
+
+extern struct timed_avg w_rolling1m, w_rolling15m, w_rolling24h;
+
 #endif /* __UTIL_H__ */

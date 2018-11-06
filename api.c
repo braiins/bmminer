@@ -2880,6 +2880,8 @@ static void summary(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __mayb
     struct api_data *root = NULL;
     bool io_open;
     double utility, ghs, work_utility;
+    double roll1m, roll15m, roll24h;
+    struct timeval now;
 
     message(io_data, MSG_SUMM, 0, NULL, isjson);
     io_open = io_add(io_data, isjson ? COMSTR JSON_SUMMARY : _SUMMARY COMSTR);
@@ -2893,6 +2895,10 @@ static void summary(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __mayb
     utility = total_accepted / ( total_secs ? total_secs : 1 ) * 60;
 
     ghs = getAVGhashrate();
+    cgtime(&now);
+    roll1m = avg_getavg(&w_rolling1m, now.tv_sec) / 1000.0;
+    roll15m = avg_getavg(&w_rolling15m, now.tv_sec) / 1000.0;
+    roll24h = avg_getavg(&w_rolling24h, now.tv_sec) / 1000.0;
 
     work_utility = total_diff1 / ( total_secs ? total_secs : 1 ) * 60;
 
@@ -2903,6 +2909,9 @@ static void summary(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __mayb
     root = api_add_string(root, "GHS 5s", displayed_hash_rate, false);
 #endif
     root = api_add_mhs(root, "GHS av", &(ghs), false);
+    root = api_add_double(root, "Hashrate1m", &roll1m, false);
+    root = api_add_double(root, "Hashrate15m", &roll15m, false);
+    root = api_add_double(root, "Hashrate24h", &roll24h, false);
     root = api_add_uint(root, "Found Blocks", &(found_blocks), true);
     root = api_add_int64(root, "Getworks", &(total_getworks), true);
     root = api_add_int64(root, "Accepted", &(total_accepted), true);
