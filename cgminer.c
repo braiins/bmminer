@@ -314,7 +314,7 @@ int g_local_mhashes_index = 0;
 double g_displayed_rolling = 0;
 char g_miner_version[256] = {0};
 char g_miner_compiletime[256] = {0};
-char g_miner_type[256] = {0};
+char g_miner_type[256] = "braiins-am1-s9";
 
 struct timed_avg w_rolling1m, w_rolling15m, w_rolling24h;
 
