@@ -12067,7 +12067,7 @@ void set_frequency(void)
             sprintf(fan_name,"fan%d", i+1);
             root = api_add_uint(root, fan_name, &(dev->fan_speed_value[i]), copy_data);
         }
-        for(i = 0; i < BITMAIN_MAX_FAN_NUM; i++)
+        for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
             char vol_name[12];
             sprintf(vol_name,"voltage%d", i+1);
