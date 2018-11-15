@@ -5389,7 +5389,6 @@ void api(int api_thr_id)
     char group;
     json_error_t json_err;
     json_t *json_config = NULL;
-    json_t *json_val;
     bool isjson;
     bool end_with_nul;
     bool did, isjoin = false, firstjoin;
@@ -5563,7 +5562,8 @@ void api(int api_thr_id)
                 io_reinit(io_data);
 
                 did = false;
-
+                isjoin = false;
+                json_config = 0;
 
                 if (strncmp(buf, "GET /", 5) == 0) {
                     char *ptr = buf + 5;
@@ -5597,6 +5597,8 @@ void api(int api_thr_id)
                     }
                     else
                     {
+                        json_t *json_val;
+
                         json_val = json_object_get(json_config, JSON_COMMAND);
                         if (json_val == NULL)
                         {
