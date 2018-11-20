@@ -4016,7 +4016,7 @@ void set_frequency(void)
 					}
 				}
 			} else {
-				applog(LOG_NOTICE, "chain %d: using default freq %d", default_freq);
+				applog(LOG_NOTICE, "chain %d: using default freq %d", i, default_freq);
 				/* no, fill in defaults */
 				pic_temp_offset[i] = 0;
 				base_freq_index[i] = default_freq_index;
@@ -4033,8 +4033,8 @@ void set_frequency(void)
 			/* if frequency was requested in config, then do an override */
 			int requested_freq = chain_frequency_settings[chain_id];
 			if (requested_freq > 0) {
-				applog(LOG_NOTICE, "chain %d: using requested freq %d", requested_freq);
-				int requested_freq_index = get_pll_index(default_freq);
+				applog(LOG_NOTICE, "chain %d: using requested freq %d", i, requested_freq);
+				int requested_freq_index = get_pll_index(requested_freq);
 				base_freq_index[i] = requested_freq_index;
 
 				/* set per-chip frequency */
