@@ -215,7 +215,7 @@ bool opt_logwork_diff = false;
 
 char *opt_api_allow = NULL;
 char *opt_api_groups;
-char *opt_api_description = PACKAGE_STRING;
+char *opt_api_description = "bmminer " BOS_SMALL_VERSION_STRING;
 int opt_api_port = 4028;
 char *opt_api_host = API_LISTEN_ADDR;
 

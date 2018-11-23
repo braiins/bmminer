@@ -45,8 +45,6 @@
 #include "compat.h"
 #include "util.h"
 
-#include "braiins-os.h"
-
 #define DEFAULT_SOCKWAIT 60
 
 bool successful_connect = false;
@@ -3192,9 +3190,9 @@ resend:
     else
     {
         if (pool->sessionid)
-            sprintf(s, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"bOS_"BOS_FIRMWARE_SUBTARGET"-"BOS_FIRMWARE_VERSION_COMPRESSED"\", \"%s\"]}", swork_id++, pool->sessionid);
+            sprintf(s, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\""BOS_SMALL_VERSION_STRING"\", \"%s\"]}", swork_id++, pool->sessionid);
         else
-            sprintf(s, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\"bOS_"BOS_FIRMWARE_SUBTARGET"-"BOS_FIRMWARE_VERSION_COMPRESSED"\"]}", swork_id++);
+            sprintf(s, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": [\""BOS_SMALL_VERSION_STRING"\"]}", swork_id++);
     }
 
     if (__stratum_send(pool, s, strlen(s)) != SEND_OK)

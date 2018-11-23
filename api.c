@@ -2015,9 +2015,9 @@ static void apiversion(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
     message(io_data, MSG_VERSION, 0, NULL, isjson);
     io_open = io_add(io_data, isjson ? COMSTR JSON_VERSION : _VERSION COMSTR);
 
-    root = api_add_string(root, "BMMiner", VERSION, false);
+    root = api_add_string(root, "BMMiner", BOS_SMALL_VERSION_STRING, false);
     root = api_add_const(root, "API", APIVERSION, false);
-    root = api_add_string(root, "Miner", g_miner_version, false);
+    root = api_add_string(root, "Miner", BOS_SMALL_VERSION_STRING, false);
     root = api_add_string(root, "CompileTime", g_miner_compiletime, false);
     root = api_add_string(root, "Type", g_miner_type, false);
 
@@ -2050,7 +2050,7 @@ static void minerconfig(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __
     root = api_add_const(root, "Strategy", strategies[pool_strategy].s, false);
     root = api_add_int(root, "Log Interval", &opt_log_interval, false);
     root = api_add_const(root, "Device Code", DEVICECODE, false);
-    root = api_add_const(root, "OS", OSINFO, false);
+    root = api_add_const(root, "OS", "Braiins OS", false);
     root = api_add_bool(root, "Failover-Only", &opt_fail_only, false);
     root = api_add_int(root, "ScanTime", &opt_scantime, false);
     root = api_add_int(root, "Queue", &opt_queue, false);
@@ -3689,8 +3689,8 @@ static void minerstats(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __m
     if (isjson)
         io_open = io_add(io_data, COMSTR JSON_MINESTATS);
 
-    root = api_add_string(root, "BMMiner", VERSION, false);
-    root = api_add_string(root, "Miner", g_miner_version, false);
+    root = api_add_string(root, "BMMiner", BOS_SMALL_VERSION_STRING, false);
+    root = api_add_string(root, "Miner", BOS_SMALL_VERSION_STRING, false);
     root = api_add_string(root, "CompileTime", g_miner_compiletime, false);
     root = api_add_string(root, "Type", g_miner_type, false);
     root = print_data(io_data, root, isjson, false);

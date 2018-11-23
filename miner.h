@@ -36,6 +36,9 @@ extern char *curly;
 #endif
 #include <sched.h>
 
+#include "braiins-os.h"
+#define BOS_SMALL_VERSION_STRING "bOS_"BOS_FIRMWARE_SUBTARGET"-"BOS_FIRMWARE_VERSION_COMPRESSED
+
 #include "elist.h"
 #include "uthash.h"
 #include "logging.h"
