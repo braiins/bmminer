@@ -488,25 +488,30 @@ unsigned char getPICvoltageFromValue(int vol_value) // vol_value = 940  means 9.
 {
 #ifdef S9_PLUS
 #ifdef S9_PLUS_VOLTAGE2
-    unsigned char temp_voltage=1250.809516-127.817623*(vol_value*1.0)/100;
+    float temp_voltage=1250.809516-127.817623*(vol_value*1.0)/100;
 #else
-    unsigned char temp_voltage=824.784-73.1705*((vol_value*1.0)/100.0);
+    float temp_voltage=824.784-73.1705*((vol_value*1.0)/100.0);
 #endif
 #endif
 
 #ifdef S9_63
-    unsigned char temp_voltage = 1608.420446 - 170.423497*(vol_value*1.0)/100.0;
+    float temp_voltage = 1608.420446 - 170.423497*(vol_value*1.0)/100.0;
 #endif
 
 #ifdef R4
-    unsigned char temp_voltage = 1608.420446 - 170.423497*(vol_value*1.0)/100.0;
+    float temp_voltage = 1608.420446 - 170.423497*(vol_value*1.0)/100.0;
 #endif
 
 #ifdef T9_18
-    unsigned char temp_voltage = 364.0704 / (4.75*(vol_value*1.0)/100 - 32.79) - 30.72;
+    float temp_voltage = 364.0704 / (4.75*(vol_value*1.0)/100 - 32.79) - 30.72;
 #endif
 
-    return temp_voltage;
+    if (temp_voltage >= 255)
+	    temp_voltage = 255;
+    if (temp_voltage <= 0)
+	    temp_voltage = 0;
+
+    return (unsigned char)temp_voltage;
 }
 
 int getVolValueFromPICvoltage(unsigned char vol_pic)
