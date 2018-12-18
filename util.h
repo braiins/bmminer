@@ -200,4 +200,6 @@ void avg_dump(struct timed_avg *ta);
 
 extern struct timed_avg w_rolling1m, w_rolling15m, w_rolling24h;
 
+int parse_list(char *s, char **argv, int max_argc, char sep);
+
 #endif /* __UTIL_H__ */

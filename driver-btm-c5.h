@@ -925,5 +925,8 @@ extern int chain_frequency_settings[BITMAIN_MAX_CHAIN_NUM];
 
 int getVolValueFromPICvoltage(unsigned char vol_pic);
 
+extern pthread_mutex_t fancontrol_lock;
+extern struct fancontrol fancontrol;
+
 #endif
 

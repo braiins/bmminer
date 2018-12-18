@@ -4090,3 +4090,23 @@ avg_insert(struct timed_avg *ta, double now, double x)
 
 	ta->sum += x;
 }
+
+int
+parse_list(char *s, char **argv, int max_argc, char sep)
+{
+	int argc = 0;
+
+	if (!*s)
+		return 0;
+	while (argc < max_argc) {
+		argv[argc++] = s;
+		while (*s != sep) {
+			if (!*s)
+				goto done;
+			s++;
+		}
+		*s++ = 0;
+	}
+done:
+	return argc;
+}

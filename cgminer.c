@@ -926,25 +926,6 @@ static char __maybe_unused *set_int_0_to_4(const char *arg, int *i)
     return set_int_range(arg, i, 0, 4);
 }
 
-static int parse_list(char *s, char **argv, int max_argc, char sep)
-{
-	int argc = 0;
-
-	if (!*s)
-		return 0;
-	while (argc < max_argc) {
-		argv[argc++] = s;
-		while (*s != sep) {
-			if (!*s)
-				goto done;
-			s++;
-		}
-		*s++ = 0;
-	}
-done:
-	return argc;
-}
-
 static const char *parse_optlist(const char *arg, int *out, int out_size, const char *(*fn)(const char *s, int *ret))
 {
 	char *list = strdupa(arg);

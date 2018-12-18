@@ -26,6 +26,7 @@
 #include "util.h"
 #include "klist.h"
 #include "driver-btm-c5.h"
+#include "fancontrol.h"
 
 #if defined(USE_BFLSC) || defined(USE_AVALON) || defined(USE_AVALON2) || defined(USE_AVALON4) || \
   defined(USE_HASHFAST) || defined(USE_BITFURY) || defined(USE_BLOCKERUPTER) || defined(USE_KLONDIKE) || \
@@ -447,6 +448,7 @@ static const char *JSON_PARAMETER = "parameter";
 #define MSG_LOCKOK 123
 #define MSG_LOCKDIS 124
 #define MSG_LCD 125
+#define MSG_OK 126
 
 enum code_severity
 {
@@ -622,6 +624,7 @@ struct CODES
     { SEVERITY_SUCC,  MSG_LCD, PARAM_NONE, "LCD" },
     { SEVERITY_SUCC,  MSG_LOCKOK,  PARAM_NONE, "Lock stats created" },
     { SEVERITY_WARN,  MSG_LOCKDIS, PARAM_NONE, "Lock stats not enabled" },
+    { SEVERITY_SUCC,  MSG_OK, PARAM_NONE, "OK" },
     { SEVERITY_FAIL, 0, 0, NULL }
 };
 
@@ -3077,6 +3080,58 @@ exitsama:
     return false;
 }
 
+static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *param, bool isjson, __maybe_unused char group)
+{
+    int ok = 0;
+    char *args = NULL;
+    int argc;
+    char *argv[4];
+    int n;
+    double f;
+
+    if (param == NULL || *param == '\0')
+        goto done;
+
+    args = strdup(param);
+    argc = parse_list(args, argv, ARRAY_SIZE(argv), ',');
+    if (argc < 1)
+        goto done;
+
+    mutex_lock(&fancontrol_lock);
+    switch (argv[0][0]) {
+        case 'e':
+            fancontrol_setmode_emergency(&fancontrol);
+            ok = 1;
+            break;
+        case 'm':
+            if (argc < 2)
+                break;
+            n = atoi(argv[1]);
+            if (n < 0 || n > 100)
+                break;
+            fancontrol_setmode_manual(&fancontrol, n);
+            ok = 1;
+            break;
+        case 'a':
+            if (argc < 2)
+                break;
+            f = atof(argv[1]);
+            if (f < 30 || f > 100)
+                break;
+            fancontrol_setmode_auto(&fancontrol, f);
+            ok = 1;
+            break;
+    }
+    mutex_unlock(&fancontrol_lock);
+
+done:
+    if (args != 0)
+        free(args);
+    message(io_data, ok ? MSG_OK : MSG_INVCMD, 0, NULL, isjson);
+    return;
+}
+
+
 static void addpool(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *param, bool isjson, __maybe_unused char group)
 {
     char *url, *user, *pass;
@@ -4521,6 +4576,7 @@ struct CMDS
     { "pgacount",       pgacount,   false,  true },
     { "switchpool",     switchpool, true,   false },
     { "addpool",        addpool,    true,   false },
+    { "fanctrl",        fanctrl,    true,   false },
     { "poolpriority",   poolpriority,   true,   false },
     { "poolquota",      poolquota,  true,   false },
     { "enablepool",     enablepool, true,   false },

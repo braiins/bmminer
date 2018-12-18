@@ -89,7 +89,7 @@ fancontrol_setmode_emergency(struct fancontrol *fc)
 int
 fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 {
-	double now = cgtime_float();	
+	double now = cgtime_float();
 	double dt = now - fc->last_calc;
 	double runtime = now - fc->started;
 
@@ -112,7 +112,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	} else {
 		/* temperature was not measured */
 		if (fc->initializing) {
-			/* you mean - not _yet_ measured? */
+			/* not _yet_ measured? */
 		} else {
 			/* fuck */
 			fc->mode = FANCTRL_EMERGENCY;

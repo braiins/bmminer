@@ -48,6 +48,7 @@
 
 #include "elist.h"
 #include "miner.h"
+#include "fancontrol.h"
 // #include "usbutils.h"
 
 #ifdef DEBUG_LOG
@@ -222,6 +223,9 @@ bool update_temp =false;
 bool check_temp_offside = false;
 
 double chain_asic_RT[BITMAIN_MAX_CHAIN_NUM][CHAIN_ASIC_NUM]= {0};
+
+pthread_mutex_t fancontrol_lock = PTHREAD_MUTEX_INITIALIZER;
+struct fancontrol fancontrol;
 
 uint32_t g_accepted[BITMAIN_MAX_CHAIN_NUM] = {0};
 uint32_t g_rejected[BITMAIN_MAX_CHAIN_NUM] = {0};
@@ -3189,6 +3193,13 @@ void set_Hardware_version(unsigned int value)
             temp_highest=dev->temp_top1[TEMP_POS_LOCAL];
         else temp_highest = dev->temp_top1[PWM_T];
 #endif
+	{
+		float hitemp = MAX(dev->temp_top1[PWM_T], dev->temp_top1[TEMP_POS_LOCAL]);
+		mutex_lock(&fancontrol_lock);
+		fancontrol_calculate(&fancontrol, 1, hitemp);
+		mutex_unlock(&fancontrol_lock);
+	}
+
 
         temp_change = temp_highest - last_temperature;
 
@@ -10637,6 +10648,11 @@ void set_frequency(void)
         }
 
         cgsleep_ms(10);
+
+	/* initialize fancontrol */
+	mutex_lock(&fancontrol_lock);
+	fancontrol_init(&fancontrol);
+	mutex_unlock(&fancontrol_lock);
 
         //check who control fan
         dev->fan_eft = config_parameter.fan_eft;
