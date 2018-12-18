@@ -16,3 +16,10 @@ struct fancontrol {
 	FILE *log;
 	PIDControl pid;
 };
+
+
+void fancontrol_init(struct fancontrol *fc);
+int fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp);
+void fancontrol_setmode_auto(struct fancontrol *fc, double setpoint_deg);
+void fancontrol_setmode_manual(struct fancontrol *fc, int fan_duty);
+void fancontrol_setmode_emergency(struct fancontrol *fc);

@@ -19,6 +19,7 @@
 #define DANGEROUS_TEMP		110
 #define HOT_TEMP		95
 #define DEFAULT_TARGET_TEMP     75
+#define MIN_TEMP 		1
 
 #define FAN_DUTY_MAX 		100
 /* do not go lower than 60% duty cycle during warmup */
@@ -98,16 +99,10 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		fc->setpoint_deg, fc->requested_fan_duty);
 
 	/* check if temperature was measured ok */
-	if (temp_ok) {
+	if (temp_ok && temp >= MIN_TEMP) {
 		/* we are past initialization */
 		if (fc->initializing) {
 			fc->initializing = 0;
-		}
-		/* is temperature meaningful? */
-		if (temp <= 0.01) {
-			/* maybe no temperature sensors? */
-			fc->mode = FANCTRL_EMERGENCY;
-			fanlog(fc, "temperature zero");
 		}
 		/* is temperature dangerous? (safety valve) */
 		if (temp >= DANGEROUS_TEMP) {
@@ -162,7 +157,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	return fan_duty;
 }
 
-int
+void
 fancontrol_init(struct fancontrol *fc)
 {
 	fc->log = fopen("/tmp/fancontrol.log", "w");
