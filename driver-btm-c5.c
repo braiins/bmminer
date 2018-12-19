@@ -11533,12 +11533,12 @@ void set_frequency(void)
         }
 #endif
 
-        free(temp_buf);
-        free((unsigned char *)coinbase_padding);
         if(part_job->merkles_num)
         {
             free((unsigned char *)merkles_bin);
         }
+        free(temp_buf);
+        free((unsigned char *)coinbase_padding);
 
         applog(LOG_DEBUG,"--- %s end\n", __FUNCTION__);
         cgtime(&tv_send_job);
