@@ -114,6 +114,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		/* temperature was not measured */
 		if (fc->initializing) {
 			/* not _yet_ measured? */
+			fanlog(fc, "no temperature yet");
 		} else {
 			/* assume it's too hot */
 			too_hot = 1;

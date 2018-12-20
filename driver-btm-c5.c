@@ -3195,9 +3195,12 @@ void set_Hardware_version(unsigned int value)
 #endif
 	{
 		float hitemp = MAX(dev->temp_top1[PWM_T], dev->temp_top1[TEMP_POS_LOCAL]);
+		int duty;
 		mutex_lock(&fancontrol_lock);
-		fancontrol_calculate(&fancontrol, 1, hitemp);
+		duty = fancontrol_calculate(&fancontrol, 1, hitemp);
 		mutex_unlock(&fancontrol_lock);
+		set_PWM(duty);
+		return;
 	}
 
 
