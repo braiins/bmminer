@@ -5165,6 +5165,7 @@ void set_frequency(void)
 
                         for(j = 0; j < reg_value_num; j++)
                         {
+                            assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                             if(reg_value_buf.reg_buffer[reg_value_buf.p_rd].chain_number != i)
                             {
                                 //  sprintf(logstr,"read asic reg Error: wrong chain number=%d on Chain[%d]\n",i);
@@ -5180,6 +5181,7 @@ void set_frequency(void)
                                 continue;
                             }
 
+                            assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                             reg_buf[3] = (unsigned char)(reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value & 0xff);
                             reg_buf[2] = (unsigned char)((reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value >> 8) & 0xff);
                             reg_buf[1] = (unsigned char)((reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value >> 16)& 0xff);
@@ -5213,6 +5215,7 @@ void set_frequency(void)
                                 dev->chain_asic_num[i]++;
                             }
 
+                            assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                             if(reg == PLL_PARAMETER)
                             {
                                 sprintf(logstr,"chain[%d]: the asic freq is 0x%x\n", i, reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value);
@@ -5377,6 +5380,7 @@ void set_frequency(void)
                     pthread_mutex_lock(&reg_mutex);
                     reg_value_num = reg_value_buf.reg_value_num;
 
+                    assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                     if((reg_value_num >= MAX_NONCE_NUMBER_IN_FIFO || reg_value_buf.p_rd >= MAX_NONCE_NUMBER_IN_FIFO) && not_reg_data_time <3)
                     {
                         not_reg_data_time ++;
@@ -5408,6 +5412,7 @@ void set_frequency(void)
 
                         for(j = 0; j < reg_value_num; j++)
                         {
+                            assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                             if(reg_value_buf.reg_buffer[reg_value_buf.p_rd].chain_number != i)
                             {
                                 reg_value_buf.p_rd++;
@@ -5420,6 +5425,7 @@ void set_frequency(void)
                                 continue;
                             }
 
+                            assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                             reg_buf[3] = (unsigned char)(reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value & 0xff);
                             reg_buf[2] = (unsigned char)((reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value >> 8) & 0xff);
                             reg_buf[1] = (unsigned char)((reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value >> 16)& 0xff);
@@ -5568,11 +5574,12 @@ void set_frequency(void)
             pthread_mutex_lock(&reg_mutex);
             for(i = 0; i < reg_value_num; i++)
             {
+                assert(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
                 reg_buf = reg_value_buf.reg_buffer[reg_value_buf.p_rd].reg_value;
                 applog(LOG_DEBUG,"%s: chip %x reg %x reg_buff %x", __FUNCTION__, chip_addr,reg,reg_buf);
                 reg_value_buf.p_rd++;
                 reg_value_buf.reg_value_num--;
-                if(reg_value_buf.p_rd < MAX_NONCE_NUMBER_IN_FIFO)
+                if(reg_value_buf.p_rd >= MAX_NONCE_NUMBER_IN_FIFO)
                 {
                     reg_value_buf.p_rd = 0;
                 }
@@ -9315,6 +9322,7 @@ void set_frequency(void)
         }
         pthread_mutex_lock(&reg_mutex);
 
+        assert(reg_value_buf.p_wr < MAX_NONCE_NUMBER_IN_FIFO);
         reg_value_buf.reg_buffer[reg_value_buf.p_wr].reg_value    = buf[1];
         reg_value_buf.reg_buffer[reg_value_buf.p_wr].crc          = (buf[0] >> 24) & 0x1f;
         reg_value_buf.reg_buffer[reg_value_buf.p_wr].chain_number = CHAIN_NUMBER(buf[0]);
@@ -9329,15 +9337,9 @@ void set_frequency(void)
             }
         }
 #endif
-
-        if(reg_value_buf.p_wr < MAX_NONCE_NUMBER_IN_FIFO )
-        {
-            reg_value_buf.p_wr++;
-        }
-        else
-        {
+        reg_value_buf.p_wr++;
+        if (reg_value_buf.p_wr >= MAX_NONCE_NUMBER_IN_FIFO)
             reg_value_buf.p_wr = 0;
-        }
 
         if(reg_value_buf.reg_value_num < MAX_NONCE_NUMBER_IN_FIFO)
         {
@@ -9392,6 +9394,7 @@ void set_frequency(void)
                                 pthread_mutex_lock(&nonce_mutex);
                                 work_id = WORK_ID_OR_CRC_VALUE(buf[0]);
                                 data_addr = (unsigned int *)((unsigned char *)nonce2_jobid_address + work_id*64);
+                                assert(nonce_read_out.p_wr < MAX_NONCE_NUMBER_IN_FIFO);
                                 nonce_read_out.nonce_buffer[nonce_read_out.p_wr].work_id          = work_id;
                                 nonce_read_out.nonce_buffer[nonce_read_out.p_wr].nonce3           = buf[1];
                                 nonce_read_out.nonce_buffer[nonce_read_out.p_wr].chain_num        = buf[0] & 0x0000000f;
@@ -9421,24 +9424,12 @@ void set_frequency(void)
 
                                 free(buf_hex);
 #endif
-
-                                if(nonce_read_out.p_wr < MAX_NONCE_NUMBER_IN_FIFO)
-                                {
-                                    nonce_read_out.p_wr++;
-                                }
-                                else
-                                {
+                                nonce_read_out.p_wr++;
+                                if (nonce_read_out.p_wr >= MAX_NONCE_NUMBER_IN_FIFO)
                                     nonce_read_out.p_wr = 0;
-                                }
 
-                                if(nonce_read_out.nonce_num < MAX_NONCE_NUMBER_IN_FIFO)
-                                {
+                                if (nonce_read_out.nonce_num < MAX_NONCE_NUMBER_IN_FIFO)
                                     nonce_read_out.nonce_num++;
-                                }
-                                else
-                                {
-                                    nonce_read_out.nonce_num = MAX_NONCE_NUMBER_IN_FIFO;
-                                }
 
                                 pthread_mutex_unlock(&nonce_mutex);
                             }
@@ -9453,18 +9444,14 @@ void set_frequency(void)
                         }
                         pthread_mutex_lock(&reg_mutex);
 
+                        assert(reg_value_buf.p_wr < MAX_NONCE_NUMBER_IN_FIFO);
                         reg_value_buf.reg_buffer[reg_value_buf.p_wr].reg_value    = buf[1];
                         reg_value_buf.reg_buffer[reg_value_buf.p_wr].crc          = (buf[0] >> 24) & 0x1f;
                         reg_value_buf.reg_buffer[reg_value_buf.p_wr].chain_number = CHAIN_NUMBER(buf[0]);
 
-                        if(reg_value_buf.p_wr < MAX_NONCE_NUMBER_IN_FIFO )
-                        {
-                            reg_value_buf.p_wr++;
-                        }
-                        else
-                        {
+                        reg_value_buf.p_wr++;
+                        if (reg_value_buf.p_wr >= MAX_NONCE_NUMBER_IN_FIFO)
                             reg_value_buf.p_wr = 0;
-                        }
 
                         if(reg_value_buf.reg_value_num < MAX_NONCE_NUMBER_IN_FIFO)
                         {
@@ -11839,6 +11826,7 @@ void set_frequency(void)
         cg_rlock(&info->update_lock);
         while(nonce_read_out.nonce_num)
         {
+            assert(nonce_read_out.p_rd < MAX_NONCE_NUMBER_IN_FIFO);
             uint32_t nonce3 = nonce_read_out.nonce_buffer[nonce_read_out.p_rd].nonce3;
             uint32_t job_id = nonce_read_out.nonce_buffer[nonce_read_out.p_rd].job_id;
             uint64_t nonce2 = nonce_read_out.nonce_buffer[nonce_read_out.p_rd].nonce2;
@@ -11860,14 +11848,10 @@ void set_frequency(void)
             struct pool *pool_stratum1 = &info->pool1;
             struct pool *pool_stratum2 = &info->pool2;
 
-            if(nonce_read_out.p_rd< MAX_NONCE_NUMBER_IN_FIFO)
-            {
-                nonce_read_out.p_rd++;
-            }
-            else
-            {
+
+            nonce_read_out.p_rd++;
+            if (nonce_read_out.p_rd >= MAX_NONCE_NUMBER_IN_FIFO)
                 nonce_read_out.p_rd = 0;
-            }
 
             nonce_read_out.nonce_num--;
 
