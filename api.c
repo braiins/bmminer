@@ -3121,6 +3121,14 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
             fancontrol_setmode_auto(&fancontrol, f);
             ok = 1;
             break;
+        case 'c':
+            if (argc < 3)
+                break;
+            n = atoi(argv[1]);
+            f = atof(argv[2]);
+            fancontrol_calculate(&fancontrol, n, f);
+            ok = 1;
+            break;
     }
     mutex_unlock(&fancontrol_lock);
 
