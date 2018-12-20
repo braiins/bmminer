@@ -92,6 +92,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	double now = cgtime_float();
 	double dt = now - fc->last_calc;
 	double runtime = now - fc->started;
+	int too_hot = 0;
 
 	fanlog(fc, "input: temp_ok=%d temp=%.2lf mode=%d init=%d setpoint=%.2lf fan_duty=%d",
 		temp_ok, temp,
@@ -106,7 +107,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		}
 		/* is temperature dangerous? (safety valve) */
 		if (temp >= DANGEROUS_TEMP) {
-			fc->mode = FANCTRL_EMERGENCY;
+			too_hot = 1;
 			fanlog(fc, "temperature too hot");
 		}
 	} else {
@@ -114,8 +115,8 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		if (fc->initializing) {
 			/* not _yet_ measured? */
 		} else {
-			/* fuck */
-			fc->mode = FANCTRL_EMERGENCY;
+			/* assume it's too hot */
+			too_hot = 1;
 			fanlog(fc, "temperature not measured");
 		}
 	}
@@ -133,7 +134,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 
 	/* calculate fan_duty for given mode */
 	double fan_duty = FAN_DUTY_MAX;
-	if (fc->initializing) {
+	if (too_hot || fc->initializing) {
 		fan_duty = FAN_DUTY_MAX;
 	} else if (fc->mode == FANCTRL_AUTO) {
 		/* feed temperature to PID */
