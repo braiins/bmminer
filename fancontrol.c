@@ -131,20 +131,25 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 
 	/* calculate fan_duty for given mode */
 	double fan_duty = FAN_DUTY_MAX;
-	if (too_hot || fc->initializing) {
+	if (too_hot) {
 		/* full power to fans */
 		fan_duty = FAN_DUTY_MAX;
 	} else if (fc->mode == FANCTRL_AUTO) {
-		/* keep fan running during warmup period */
-		int min_duty = FAN_DUTY_MIN;
-		if (runtime < WARMUP_PERIOD_SEC)
-			runtime = FAN_DUTY_MIN_WARMUP;
-		/* set PID limits */
-		PIDOutputLimitsSet(&fc->pid, min_duty, FAN_DUTY_MAX);
-		/* feed temperature to PID */
-		PIDInputSet(&fc->pid, temp);
-		PIDCompute(&fc->pid, dt);
-		fan_duty = PIDOutputGet(&fc->pid);
+		if (fc->initializing) {
+			/* full power to fans */
+			fan_duty = FAN_DUTY_MAX;
+		} else {
+			/* keep fan running during warmup period */
+			int min_duty = FAN_DUTY_MIN;
+			if (runtime < WARMUP_PERIOD_SEC)
+				runtime = FAN_DUTY_MIN_WARMUP;
+			/* set PID limits */
+			PIDOutputLimitsSet(&fc->pid, min_duty, FAN_DUTY_MAX);
+			/* feed temperature to PID */
+			PIDInputSet(&fc->pid, temp);
+			PIDCompute(&fc->pid, dt);
+			fan_duty = PIDOutputGet(&fc->pid);
+		}
 	} else if (fc->mode == FANCTRL_MANUAL) {
 		/* output requested fan speed */
 		fan_duty = fc->requested_fan_duty;
