@@ -116,6 +116,11 @@ typedef struct
     float outMax;
 
     //
+    // Offset of output variable
+    //
+    float offset;
+
+    //
     // The user chosen operating point
     //
     float setpoint;
@@ -165,7 +170,7 @@ PIDControl;
 //      Nothing.
 //
 extern void PIDInit(PIDControl *pid, float kp, float ki, float kd,
-                    float minOutput, float maxOutput,
+                    float minOutput, float maxOutput, float offset,
                     PIDMode mode, PIDDirection controllerDirection);
 
 //
@@ -303,7 +308,7 @@ PIDInputSet(PIDControl *pid, float input) { pid->input = input; }
 //      The output of the specific PID controller.
 //
 static inline float
-PIDOutputGet(PIDControl *pid) { return pid->output; }
+PIDOutputGet(PIDControl *pid) { return pid->output + pid->offset; }
 
 //
 // PID Proportional Gain Constant Get

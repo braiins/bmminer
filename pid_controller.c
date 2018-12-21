@@ -47,7 +47,7 @@
 // Functions
 //*********************************************************************************
 void PIDInit(PIDControl *pid, float kp, float ki, float kd,
-             float minOutput, float maxOutput,
+             float minOutput, float maxOutput, float offset,
              PIDMode mode, PIDDirection controllerDirection)
 {
     pid->controllerDirection = controllerDirection;
@@ -57,6 +57,7 @@ void PIDInit(PIDControl *pid, float kp, float ki, float kd,
     pid->lastInput = 0.0f;
     pid->output = 0.0f;
     pid->setpoint = 0.0f;
+    pid->offset = offset;
 
     PIDOutputLimitsSet(pid, minOutput, maxOutput);
     PIDTuningsSet(pid, kp, ki, kd);
@@ -124,14 +125,14 @@ PIDOutputLimitsSet(PIDControl *pid, float min, float max)
     }
 
     // Save the parameters
-    pid->outMin = min;
-    pid->outMax = max;
+    pid->outMin = min - pid->offset;
+    pid->outMax = max - pid->offset;
 
     // If in automatic, apply the new constraints
     if(pid->mode == AUTOMATIC)
     {
-        pid->output = CONSTRAIN(pid->output, min, max);
-        pid->iTerm  = CONSTRAIN(pid->iTerm,  min, max);
+        pid->output = CONSTRAIN(pid->output, pid->outMin, pid->outMax);
+        pid->iTerm  = CONSTRAIN(pid->iTerm,  pid->outMin, pid->outMax);
     }
 }
 

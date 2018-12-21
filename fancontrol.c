@@ -11,9 +11,9 @@
 #include "fancontrol.h"
 
 /* PID constants */
-#define PID_KP 20
-#define PID_KI 0.05
-#define PID_KD 0.1
+#define PID_KP 10
+#define PID_KI 0.125
+#define PID_KD 0.06
 
 /* Temperature limits (model specific?) */
 #define DANGEROUS_TEMP		110
@@ -25,8 +25,14 @@
 /* do not go lower than 60% duty cycle during warmup */
 #define FAN_DUTY_MIN_WARMUP 	60
 #define FAN_DUTY_MIN 		10
+/* at this fan duty the temperature should be stable at some */
+/* sensible (non-dangerous) value */
+#define FAN_MIDPOINT		50
+/* the fan is allowed to fall only at this rate (PWM% per second) */
+/* this smoothes the settling curve considerably */
+#define PWM_FALL_RATE_SEC	0.125
 
-#define WARMUP_PERIOD_SEC	(6*60)
+#define WARMUP_PERIOD_SEC	(60*2)
 
 
 static double
@@ -94,7 +100,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	double runtime = now - fc->started;
 	int too_hot = 0;
 
-	fanlog(fc, "input: temp_ok=%d temp=%.2lf mode=%d init=%d setpoint=%.2lf fan_duty=%d",
+	fanlog(fc, "input: temp_ok=%d temp=%.2lf mode=%d init=%d setpoint=%.2lf req_fan_duty=%d",
 		temp_ok, temp,
 		fc->mode, fc->initializing,
 		fc->setpoint_deg, fc->requested_fan_duty);
@@ -122,8 +128,8 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		}
 	}
 
-	/* only allow to lower fan duty by 1% a second */
-	int new_min_duty = fc->fan_duty - ceil(dt * 1);
+	/* only allow to lower fan duty by PWM_FALL_RATE_SEC% a second */
+	int new_min_duty = fc->fan_duty - ceil(dt * PWM_FALL_RATE_SEC);
 	new_min_duty = MAX(FAN_DUTY_MIN, new_min_duty);
 	/* are we still warming up? */
 	if (runtime < WARMUP_PERIOD_SEC) {
@@ -170,6 +176,6 @@ fancontrol_init(struct fancontrol *fc)
 	fc->last_calc = fc->started;
 	fc->requested_fan_duty = fc->fan_duty = FAN_DUTY_MAX;
 
-	PIDInit(&fc->pid, PID_KP, PID_KI, PID_KD, FAN_DUTY_MIN_WARMUP, FAN_DUTY_MAX, AUTOMATIC, REVERSE);
+	PIDInit(&fc->pid, PID_KP, PID_KI, PID_KD, FAN_DUTY_MIN_WARMUP, FAN_DUTY_MAX, FAN_MIDPOINT, AUTOMATIC, REVERSE);
 	fancontrol_setmode_auto(fc, DEFAULT_TARGET_TEMP);
 }
