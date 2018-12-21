@@ -15,12 +15,6 @@
 #define PID_KI 0.03
 #define PID_KD 0.015
 
-/* Temperature limits (model specific?) */
-#define DANGEROUS_TEMP		95
-#define HOT_TEMP		90
-#define DEFAULT_TARGET_TEMP     75
-#define MIN_TEMP 		1
-
 #define FAN_DUTY_MAX 		100
 /* do not go lower than 60% duty cycle during warmup */
 #define FAN_DUTY_MIN_WARMUP 	60

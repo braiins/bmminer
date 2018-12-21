@@ -1,5 +1,11 @@
 #include "pid_controller.h"
 
+/* Temperature limits (model specific?) */
+#define DANGEROUS_TEMP		95
+#define HOT_TEMP		90
+#define DEFAULT_TARGET_TEMP     75
+#define MIN_TEMP 		1
+
 enum fancontrol_mode {
 	FANCTRL_EMERGENCY,
 	FANCTRL_AUTO,
@@ -16,7 +22,6 @@ struct fancontrol {
 	FILE *log;
 	PIDControl pid;
 };
-
 
 void fancontrol_init(struct fancontrol *fc);
 int fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp);
