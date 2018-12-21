@@ -12,12 +12,12 @@
 
 /* PID constants */
 #define PID_KP 10
-#define PID_KI 0.125
-#define PID_KD 0.06
+#define PID_KI 0.03
+#define PID_KD 0.015
 
 /* Temperature limits (model specific?) */
-#define DANGEROUS_TEMP		110
-#define HOT_TEMP		95
+#define DANGEROUS_TEMP		95
+#define HOT_TEMP		90
 #define DEFAULT_TARGET_TEMP     75
 #define MIN_TEMP 		1
 
@@ -27,7 +27,7 @@
 #define FAN_DUTY_MIN 		10
 /* at this fan duty the temperature should be stable at some */
 /* sensible (non-dangerous) value */
-#define FAN_MIDPOINT		50
+#define FAN_MIDPOINT		70
 /* the fan is allowed to fall only at this rate (PWM% per second) */
 /* this smoothes the settling curve considerably */
 #define PWM_FALL_RATE_SEC	0.125
@@ -113,8 +113,14 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		}
 		/* is temperature dangerous? (safety valve) */
 		if (temp >= DANGEROUS_TEMP) {
+			fanlog(fc, "temperature dangerous, shutting down");
+			fprintf(stderr, "\n\nTemperature DANGEROUS, Shutting Down\n\n");
+			exit(1);
+		}
+		if (temp >= HOT_TEMP) {
+			fanlog(fc, "temperature very hot, turning on fans");
+			fc->fan_duty = FAN_DUTY_MAX;
 			too_hot = 1;
-			fanlog(fc, "temperature too hot");
 		}
 	} else {
 		/* temperature was not measured */
@@ -128,22 +134,19 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		}
 	}
 
-	/* only allow to lower fan duty by PWM_FALL_RATE_SEC% a second */
-	int new_min_duty = fc->fan_duty - ceil(dt * PWM_FALL_RATE_SEC);
-	new_min_duty = MAX(FAN_DUTY_MIN, new_min_duty);
-	/* are we still warming up? */
-	if (runtime < WARMUP_PERIOD_SEC) {
-		/* do not run fans too low when warming up */
-		new_min_duty = MAX(new_min_duty, FAN_DUTY_MIN_WARMUP);
-	}
-	/* set PID limits */
-	PIDOutputLimitsSet(&fc->pid, new_min_duty, FAN_DUTY_MAX);
 
 	/* calculate fan_duty for given mode */
 	double fan_duty = FAN_DUTY_MAX;
 	if (too_hot || fc->initializing) {
+		/* full power to fans */
 		fan_duty = FAN_DUTY_MAX;
 	} else if (fc->mode == FANCTRL_AUTO) {
+		/* keep fan running during warmup period */
+		int min_duty = FAN_DUTY_MIN;
+		if (runtime < WARMUP_PERIOD_SEC)
+			runtime = FAN_DUTY_MIN_WARMUP;
+		/* set PID limits */
+		PIDOutputLimitsSet(&fc->pid, min_duty, FAN_DUTY_MAX);
 		/* feed temperature to PID */
 		PIDInputSet(&fc->pid, temp);
 		PIDCompute(&fc->pid, dt);
@@ -159,8 +162,8 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	fc->last_calc = now;
 	fc->fan_duty = fan_duty;
 
-	fanlog(fc, "output: fan_duty=%d dt=%.2lf mode=%d min_duty=%d",
-		fc->fan_duty, dt, fc->mode, new_min_duty);
+	fanlog(fc, "output: fan_duty=%d dt=%.2lf mode=%d",
+		fc->fan_duty, dt, fc->mode);
 
 	return fan_duty;
 }
