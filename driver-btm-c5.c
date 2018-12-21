@@ -10655,6 +10655,13 @@ void set_frequency(void)
 	/* initialize fancontrol */
 	mutex_lock(&fancontrol_lock);
 	fancontrol_init(&fancontrol);
+	if (opt_fan_ctrl == FAN_MODE_TEMP) {
+		applog(LOG_NOTICE, "AUTOMATIC fan control, target temperature %d degrees", opt_fan_temp);
+		fancontrol_setmode_auto(&fancontrol, opt_fan_temp);
+	} else {
+		applog(LOG_NOTICE, "MANUAL fan control, target speed %d%%", opt_fan_speed);
+		fancontrol_setmode_manual(&fancontrol, opt_fan_speed);
+	}
 	mutex_unlock(&fancontrol_lock);
 
         //check who control fan
@@ -11651,6 +11658,13 @@ void set_frequency(void)
             .chain_max_freq                 = 600,
         };
         c5_config.crc = CRC16((uint8_t *)(&c5_config), sizeof(c5_config)-2);
+
+	if (opt_fan_ctrl == 0) {
+		if (opt_fan_temp <= MIN_TEMP || opt_fan_temp >= HOT_TEMP) {
+			quit(1, "requested fan temperature %d out of range (%d, %d)",
+				MIN_TEMP, HOT_TEMP);
+		}
+	}
 
         bitmain_c5_init(c5_config);
 

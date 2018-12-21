@@ -305,6 +305,12 @@ enum pool_strategy
     POOL_BALANCE,
 };
 
+enum fan_modes
+{
+    FAN_MODE_TEMP,
+    FAN_MODE_PWM,
+};
+
 #define TOP_STRATEGY (POOL_BALANCE)
 
 struct strategies
@@ -1000,6 +1006,10 @@ extern bool opt_api_network;
 extern bool opt_delaynet;
 extern time_t last_getwork;
 extern bool opt_restart;
+
+extern int opt_fan_temp;
+extern int opt_fan_speed;
+extern int opt_fan_ctrl;
 
 extern bool opt_worktime;
 

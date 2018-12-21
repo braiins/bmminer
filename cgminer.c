@@ -81,6 +81,8 @@ char *curly = ":D";
 #include <sys/wait.h>
 #endif
 
+#include "fancontrol.h"
+
 struct strategies strategies[] =
 {
     { "Failover" },
@@ -244,6 +246,10 @@ char *fan_pwm_data = (char*) 20;
 //uint8_t fan_eft = 1;
 bool fan_ctrl_type = TRUE;
 #endif
+
+int opt_fan_ctrl = FAN_MODE_TEMP;
+int opt_fan_temp = DEFAULT_TARGET_TEMP;
+int opt_fan_speed = 100;
 
 static char *opt_set_null;
 
@@ -978,6 +984,40 @@ static const char *parse_frequency(const char *s, int *freq)
 	return  0;
 }
 
+static char *opt_set_enum(const char **options, const char *arg, int *out_i)
+{
+	int i = 0;
+	for (i = 0; options[i] != 0; i++) {
+		if (strcmp(options[i], arg) == 0) {
+			*out_i = i;
+			return 0;
+		}
+	}
+	return "invalid enum option";
+}
+
+static void opt_show_enum(const char **options, char buf[OPT_SHOW_LEN], const int *i)
+{
+	snprintf(buf, OPT_SHOW_LEN, "%s", options[*i]);
+}
+
+/* must match enum fan_modes */
+static const char *fan_ctrl_modes[] = {
+	"temp",
+	"pwm",
+	0,
+};
+
+static char *opt_set_fan_ctrl(const char *arg, int *i)
+{
+	return opt_set_enum(fan_ctrl_modes, arg, i);
+}
+
+static void opt_show_fan_ctrl(char buf[OPT_SHOW_LEN], const int *i)
+{
+	opt_show_enum(fan_ctrl_modes, buf, i);
+}
+
 
 static const char *set_voltages(const char *arg, int *voltages)
 {
@@ -1610,6 +1650,17 @@ static struct opt_table opt_config_table[] =
     opt_set_bool, &opt_benchmark,
     "Run cgminer in benchmark mode - produces no shares"),
 
+    OPT_WITH_ARG("--fan-ctrl",
+    opt_set_fan_ctrl, opt_show_fan_ctrl, &opt_fan_ctrl,
+    "Set fan mode"),
+
+    OPT_WITH_ARG("--fan-temp",
+    set_int_0_to_100, opt_show_intval, &opt_fan_temp,
+    "Port number of miner API"),
+
+    OPT_WITH_ARG("--fan-speed",
+    set_int_0_to_100, opt_show_intval, &opt_fan_speed,
+    "Port number of miner API"),
 
 #ifdef USE_BITMAIN_C5
     OPT_WITHOUT_ARG("--bitmain-fan-ctrl",
