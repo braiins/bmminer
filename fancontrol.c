@@ -11,7 +11,7 @@
 #include "fancontrol.h"
 
 /* PID constants */
-#define PID_KP 10
+#define PID_KP 5
 #define PID_KI 0.03
 #define PID_KD 0.015
 
@@ -104,6 +104,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		/* we are past initialization */
 		if (fc->initializing) {
 			fc->initializing = 0;
+			dt = 1;
 		}
 		/* is temperature dangerous? (safety valve) */
 		if (temp >= DANGEROUS_TEMP) {
@@ -142,7 +143,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 			/* keep fan running during warmup period */
 			int min_duty = FAN_DUTY_MIN;
 			if (runtime < WARMUP_PERIOD_SEC)
-				runtime = FAN_DUTY_MIN_WARMUP;
+				min_duty = FAN_DUTY_MIN_WARMUP;
 			/* set PID limits */
 			PIDOutputLimitsSet(&fc->pid, min_duty, FAN_DUTY_MAX);
 			/* feed temperature to PID */
