@@ -3099,11 +3099,13 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
 
     mutex_lock(&fancontrol_lock);
     switch (argv[0][0]) {
+	/* emergency mode: fans on full */
         case 'e':
             fancontrol_setmode_emergency(&fancontrol);
             ok = 1;
             break;
-        case 'm':
+	/* pwm mode - arg is fixed speed in %, PID is disabled */
+        case 'p':
             if (argc < 2)
                 break;
             n = atoi(argv[1]);
@@ -3112,7 +3114,8 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
             fancontrol_setmode_manual(&fancontrol, n);
             ok = 1;
             break;
-        case 'a':
+	/* temperature mode - arg is target temperature, PID enabled */
+        case 't':
             if (argc < 2)
                 break;
             f = atof(argv[1]);
@@ -3121,7 +3124,8 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
             fancontrol_setmode_auto(&fancontrol, f);
             ok = 1;
             break;
-        case 'c':
+	/* just feed some numbers into pid controller */
+        case '_':
             if (argc < 3)
                 break;
             n = atoi(argv[1]);
