@@ -28,6 +28,11 @@
 
 #define WARMUP_PERIOD_SEC	(60*2)
 
+const char *fancontrol_mode_name[] = {
+	"emergency",
+	"automatic",
+	"manual",
+};
 
 static double
 cgtime_float(void)
@@ -160,6 +165,8 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	}
 	/* remember what was set */
 	fc->last_calc = now;
+	fc->last_temp = temp;
+	fc->last_dt = dt;
 	fc->fan_duty = fan_duty;
 
 	fanlog(fc, "output: fan_duty=%d dt=%.2lf mode=%d",

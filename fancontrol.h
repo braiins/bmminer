@@ -6,11 +6,14 @@
 #define DEFAULT_TARGET_TEMP     75
 #define MIN_TEMP 		1
 
+/* keep in sync with fancontrol_mode_name */
 enum fancontrol_mode {
 	FANCTRL_EMERGENCY,
 	FANCTRL_AUTO,
 	FANCTRL_MANUAL,
 };
+
+extern const char *fancontrol_mode_name[];
 
 struct fancontrol {
 	int initializing;
@@ -19,6 +22,7 @@ struct fancontrol {
 	int requested_fan_duty;
 	int fan_duty;
 	double started, last_calc;
+	double last_dt, last_temp;
 	FILE *log;
 	PIDControl pid;
 };

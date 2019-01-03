@@ -249,6 +249,7 @@ static const char *OSINFO =
 #define _POOLS      "POOLS"
 #define _SUMMARY    "SUMMARY"
 #define _NONCENUM   "NONCENUM"
+#define _FANCTRL   "FANCTRL"
 #define _STATUS     "STATUS"
 #define _VERSION    "VERSION"
 #define _MINECONFIG "CONFIG"
@@ -291,6 +292,7 @@ static const char ISJSON = '{';
 #define JSON_POOLS  JSON1 _POOLS JSON2
 #define JSON_SUMMARY    JSON1 _SUMMARY JSON2
 #define JSON_NONCENUM   JSON1 _NONCENUM JSON2
+#define JSON_FANCTRL  JSON1 _FANCTRL JSON2
 
 #define JSON_STATUS JSON1 _STATUS JSON2
 #define JSON_VERSION    JSON1 _VERSION JSON2
@@ -449,6 +451,7 @@ static const char *JSON_PARAMETER = "parameter";
 #define MSG_LOCKDIS 124
 #define MSG_LCD 125
 #define MSG_OK 126
+#define MSG_FANCTRL 127
 
 enum code_severity
 {
@@ -625,6 +628,7 @@ struct CODES
     { SEVERITY_SUCC,  MSG_LOCKOK,  PARAM_NONE, "Lock stats created" },
     { SEVERITY_WARN,  MSG_LOCKDIS, PARAM_NONE, "Lock stats not enabled" },
     { SEVERITY_SUCC,  MSG_OK, PARAM_NONE, "OK" },
+    { SEVERITY_SUCC,  MSG_FANCTRL, PARAM_NONE, "Fan control values" },
     { SEVERITY_FAIL, 0, 0, NULL }
 };
 
@@ -3089,8 +3093,10 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
     int n;
     double f;
 
-    if (param == NULL || *param == '\0')
+    if (param == NULL || *param == '\0') {
+        ok = 1;
         goto done;
+    }
 
     args = strdup(param);
     argc = parse_list(args, argv, ARRAY_SIZE(argv), ',');
@@ -3139,7 +3145,39 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
 done:
     if (args != 0)
         free(args);
-    message(io_data, ok ? MSG_OK : MSG_INVCMD, 0, NULL, isjson);
+
+    if (!ok) {
+        message(io_data, MSG_INVCMD, 0, NULL, isjson);
+        return;
+    }
+
+    message(io_data, MSG_FANCTRL, 0, NULL, isjson);
+
+    struct api_data *root = NULL;
+    bool io_open = false;
+    struct fancontrol fc;
+
+    if (isjson)
+        io_open = io_add(io_data, COMSTR JSON_FANCTRL);
+
+    /* copy fancontrol structure */
+    mutex_lock(&fancontrol_lock);
+    fc = fancontrol;
+    mutex_unlock(&fancontrol_lock);
+
+    /* format PID status */
+    root = api_add_string(root, "Mode", (char *)fancontrol_mode_name[fc.mode], false);
+    root = api_add_double(root, "TargetTemp", &fc.setpoint_deg, false);
+    root = api_add_int(root, "TargetPwm", &fc.requested_fan_duty, false);
+    root = api_add_double(root, "Temperature", &fc.last_temp, false);
+    root = api_add_int(root, "Output", &fc.fan_duty, false);
+    root = api_add_double(root, "Interval", &fc.last_dt, false);
+
+    /* print JSON reply */
+    root = print_data(io_data, root, isjson, 0);
+    if (isjson && io_open)
+        io_close(io_data);
+
     return;
 }
 
@@ -4588,7 +4626,11 @@ struct CMDS
     { "pgacount",       pgacount,   false,  true },
     { "switchpool",     switchpool, true,   false },
     { "addpool",        addpool,    true,   false },
-    { "fanctrl",        fanctrl,    true,   false },
+    { "fanctrl",        fanctrl,    true,   true },
+#if 0
+    { "fans",		fanstatus,  true,   false },
+    { "temps",		tempstatus, true,   false },
+#endif
     { "poolpriority",   poolpriority,   true,   false },
     { "poolquota",      poolquota,  true,   false },
     { "enablepool",     enablepool, true,   false },
