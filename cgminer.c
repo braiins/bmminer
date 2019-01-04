@@ -144,6 +144,8 @@ static int benchfile_line;
 static int benchfile_work;
 static bool opt_benchmark;
 
+static int opt_config_format_revision = 1;
+
 static bool work_filled;
 static bool work_emptied;
 
@@ -1661,6 +1663,11 @@ static struct opt_table opt_config_table[] =
     OPT_WITH_ARG("--fan-speed",
     set_int_0_to_100, opt_show_intval, &opt_fan_speed,
     "Port number of miner API"),
+
+    OPT_WITH_ARG("--config-format-revision",
+    set_int_0_to_100, opt_show_intval, &opt_config_format_revision,
+    "Revision of config file (used by migration script)"),
+
 
 #ifdef USE_BITMAIN_C5
     OPT_WITH_ARG("--bitmain-freq",
