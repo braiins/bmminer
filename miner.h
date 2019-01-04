@@ -1010,6 +1010,7 @@ extern bool opt_restart;
 extern int opt_fan_temp;
 extern int opt_fan_speed;
 extern int opt_fan_ctrl;
+extern float opt_overclock;
 
 extern bool opt_worktime;
 

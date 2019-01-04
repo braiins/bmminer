@@ -3491,6 +3491,15 @@ void set_Hardware_version(unsigned int value)
         return atoi(freq_pll_1385[index].freq);
     }
 
+    void overclock_freq_index(unsigned char *data, float mult)
+    {
+	int index = *data;
+        int freq = atoi(freq_pll_1385[index].freq);
+	freq = round(freq * mult);
+	*data = get_pll_index(freq);
+    }
+
+
     int GetTotalRate()
     {
         int i,j;
@@ -4052,15 +4061,35 @@ void set_frequency(void)
 			/* if frequency was requested in config, then do an override */
 			int requested_freq = chain_frequency_settings[chain_id];
 			if (requested_freq > 0) {
-				applog(LOG_NOTICE, "chain %d: using requested freq %d", i, requested_freq);
-				int requested_freq_index = get_pll_index(requested_freq);
-				base_freq_index[i] = requested_freq_index;
+				int target_freq = requested_freq;
+
+				if (opt_overclock != 0) {
+					target_freq = round(target_freq * opt_overclock);
+					applog(LOG_NOTICE, "chain %d: using requested freq %d (overclocked by %f from %d)",
+							i, target_freq, opt_overclock, requested_freq);
+				} else {
+					applog(LOG_NOTICE, "chain %d: using requested freq %d",
+							i, target_freq);
+				}
+				int target_freq_index = get_pll_index(target_freq);
+				base_freq_index[i] = target_freq_index;
 
 				/* set per-chip frequency */
 				for (j = 0; j < CHAIN_ASIC_NUM; j++) {
-					last_freq[i][j*2+3] = requested_freq_index;
+					last_freq[i][j*2+3] = target_freq_index;
 				}
 				/* XXX: should we clear chain_badcore_num? */
+			} else {
+				if (opt_overclock != 0) {
+					applog(LOG_NOTICE, "chain %d: overclocking whole chain by factor %.3f",
+						opt_overclock);
+
+					/* overclock indexes directly */
+					overclock_freq_index(&base_freq_index[i], opt_overclock);
+					for (j = 0; j < CHAIN_ASIC_NUM; j++) {
+						overclock_freq_index(&last_freq[i][j*2+3], opt_overclock);
+					}
+				}
 			}
 
 			/* clamp frequency */
@@ -4090,6 +4119,9 @@ void set_frequency(void)
 				/* PERFORM SET FREQUENCY */
 				set_frequency_with_addr_plldatai(last_freq[i][j*2+3],0, j * dev->addrInterval,i);
 			}
+			applog(LOG_NOTICE, "chain %d: base FREQUENCY %d MHz",
+				i, get_freqvalue_by_index(base_freq_index[i]));
+			/* print interesting information about chip frequency */
 			if (different_freqs)
 				applog(LOG_NOTICE, "chain %d has chips of varying frequency", i);
 			if (!different_freqs && first_chip_freq_index != base_freq_index[i])

@@ -180,7 +180,7 @@ void opt_show_intval(char buf[OPT_SHOW_LEN], const int *i)
 
 void opt_show_floatval(char buf[OPT_SHOW_LEN], const float *f)
 {
-	snprintf(buf, OPT_SHOW_LEN, "%.1f", *f);
+	snprintf(buf, OPT_SHOW_LEN, "%f", *f);
 }
 
 void opt_show_uintval(char buf[OPT_SHOW_LEN], const unsigned int *ui)

@@ -253,6 +253,8 @@ int opt_fan_ctrl = FAN_MODE_TEMP;
 int opt_fan_temp = DEFAULT_TARGET_TEMP;
 int opt_fan_speed = 100;
 
+float opt_overclock = 0;
+
 static char *opt_set_null;
 
 #ifdef USE_USBUTILS
@@ -1478,8 +1480,7 @@ static char *set_logwork_asicnum(const char *arg)
     return NULL;
 }
 
-
-static char *set_float_125_to_500(const char *arg, float *i)
+static char *set_float(const char *arg, float *i)
 {
     char *err = opt_set_floatval(arg, i);
 
@@ -1488,32 +1489,8 @@ static char *set_float_125_to_500(const char *arg, float *i)
         return err;
     }
 
-    if (*i < 125 || *i > 500)
-    {
-        return "Value out of range";
-    }
-
     return NULL;
 }
-
-
-static char *set_float_100_to_250(const char *arg, float *i)
-{
-    char *err = opt_set_floatval(arg, i);
-
-    if (err)
-    {
-        return err;
-    }
-
-    if (*i < 100 || *i > 250)
-    {
-        return "Value out of range";
-    }
-
-    return NULL;
-}
-
 
 static char *set_null(const char __maybe_unused *arg)
 {
@@ -1663,6 +1640,11 @@ static struct opt_table opt_config_table[] =
     OPT_WITH_ARG("--fan-speed",
     set_int_0_to_100, opt_show_intval, &opt_fan_speed,
     "Port number of miner API"),
+
+    OPT_WITH_ARG("--overclock",
+    set_float, opt_show_floatval, &opt_overclock,
+    "Overclocking multiplier"),
+
 
     OPT_WITH_ARG("--config-format-revision",
     set_int_0_to_100, opt_show_intval, &opt_config_format_revision,
@@ -6084,14 +6066,6 @@ void write_config(FILE *fcfg)
                 fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
 		write_frequencies(fcfg, chain_frequency_settings);
                 fprintf(fcfg, "\"");
-                continue;
-            }
-
-            if (opt->type & OPT_HASARG &&
-                (((void *)opt->cb_arg == (void *)set_float_125_to_500) ||
-                 (void *)opt->cb_arg == (void *)set_float_100_to_250))
-            {
-                fprintf(fcfg, ",\n\"%s\" : \"%.1f\"", p+2, *(float *)opt->u.arg);
                 continue;
             }
 
