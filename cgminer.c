@@ -1006,7 +1006,7 @@ static void opt_show_enum(const char **options, char buf[OPT_SHOW_LEN], const in
 /* must match enum fan_modes */
 static const char *fan_ctrl_modes[] = {
 	"temp",
-	"pwm",
+	"speed",
 	0,
 };
 

@@ -308,7 +308,7 @@ enum pool_strategy
 enum fan_modes
 {
     FAN_MODE_TEMP,
-    FAN_MODE_PWM,
+    FAN_MODE_SPEED,
 };
 
 #define TOP_STRATEGY (POOL_BALANCE)
