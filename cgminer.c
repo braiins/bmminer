@@ -1663,14 +1663,6 @@ static struct opt_table opt_config_table[] =
     "Port number of miner API"),
 
 #ifdef USE_BITMAIN_C5
-    OPT_WITHOUT_ARG("--bitmain-fan-ctrl",
-    opt_set_bool, &opt_bitmain_fan_ctrl,
-    "Enable bitmain miner fan controlling"),
-
-    OPT_WITH_ARG("--bitmain-fan-pwm",
-    set_int_0_to_100, opt_show_intval, &opt_bitmain_fan_pwm,
-    "Set bitmain fan pwm percentage 0~100"),
-
     OPT_WITH_ARG("--bitmain-freq",
     set_frequencies, 0, &chain_frequency_settings,
     "Set frequencies"),
@@ -1686,8 +1678,6 @@ static struct opt_table opt_config_table[] =
     OPT_WITHOUT_ARG("--no-pre-heat",
     opt_set_invbool, &opt_pre_heat,
     "Set bitmain miner doesn't pre heat"),
-
-
 #endif
 
 #ifdef USE_BITMAIN
@@ -5972,6 +5962,20 @@ static void write_voltages(FILE *fcfg, const int *voltages)
 	}
 }
 
+static void write_frequencies(FILE *fcfg, const int *freqs)
+{
+	int i, n;
+
+	for (n = BITMAIN_MAX_CHAIN_NUM; n > 0; n--) {
+		if (freqs[n - 1] != 0)
+			break;
+	}
+	for (i = 0; i < n; i++) {
+		fprintf(fcfg, "%s%d", i > 0 ? "," : "", freqs[i]);
+	}
+}
+
+
 void write_config(FILE *fcfg)
 {
     struct opt_table *opt;
@@ -6067,18 +6071,14 @@ void write_config(FILE *fcfg)
                 continue;
             }
 
-#if 0
             if (opt->type & OPT_HASARG &&
-                ((void *)opt->cb_arg == set_voltage))
+                ((void *)opt->cb_arg == set_frequencies))
             {
-		int vol = *(int *)opt->u.arg;
-		if (vol != 0) {
-                    fprintf(fcfg, ",\n\"%s\" : \"%.2lf\"", p + 2, vol/100.0);
-		}
+                fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
+		write_frequencies(fcfg, chain_frequency_settings);
+                fprintf(fcfg, "\"");
                 continue;
             }
-#endif
-
 
             if (opt->type & OPT_HASARG &&
                 (((void *)opt->cb_arg == (void *)set_float_125_to_500) ||
@@ -6087,6 +6087,13 @@ void write_config(FILE *fcfg)
                 fprintf(fcfg, ",\n\"%s\" : \"%.1f\"", p+2, *(float *)opt->u.arg);
                 continue;
             }
+
+            if ((opt->type & OPT_HASARG) && opt->show != NULL) {
+                char buf[OPT_SHOW_LEN];
+                opt->show(buf, opt->u.arg);
+                fprintf(fcfg, ",\n\"%s\" : \"%s\"", p+2, buf);
+                continue;
+	    }
 
             if (opt->type & (OPT_HASARG | OPT_PROCESSARG) &&
                 (opt->u.arg != &opt_set_null))
