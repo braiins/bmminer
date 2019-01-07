@@ -252,8 +252,10 @@ bool fan_ctrl_type = TRUE;
 int opt_fan_ctrl = FAN_MODE_TEMP;
 int opt_fan_temp = DEFAULT_TARGET_TEMP;
 int opt_fan_speed = 100;
+int opt_fan_ctrl_set = 0;
 
 float opt_overclock = 0;
+int opt_overclock_set = 0;
 
 static char *opt_set_null;
 
@@ -1629,21 +1631,25 @@ static struct opt_table opt_config_table[] =
     opt_set_bool, &opt_benchmark,
     "Run cgminer in benchmark mode - produces no shares"),
 
-    OPT_WITH_ARG("--fan-ctrl",
+    OPT_WITH_ARG_DEF("--fan-ctrl",
     opt_set_fan_ctrl, opt_show_fan_ctrl, &opt_fan_ctrl,
-    "Set fan mode"),
+    "Set fan mode",
+    &opt_fan_ctrl_set),
 
-    OPT_WITH_ARG("--fan-temp",
+    OPT_WITH_ARG_DEF("--fan-temp",
     set_int_0_to_100, opt_show_intval, &opt_fan_temp,
-    "Port number of miner API"),
+    "Port number of miner API",
+    &opt_fan_ctrl_set),
 
-    OPT_WITH_ARG("--fan-speed",
+    OPT_WITH_ARG_DEF("--fan-speed",
     set_int_0_to_100, opt_show_intval, &opt_fan_speed,
-    "Port number of miner API"),
+    "Port number of miner API",
+    &opt_fan_ctrl_set),
 
-    OPT_WITH_ARG("--overclock",
+    OPT_WITH_ARG_DEF("--overclock",
     set_float, opt_show_floatval, &opt_overclock,
-    "Overclocking multiplier"),
+    "Overclocking multiplier",
+    &opt_overclock_set),
 
 
     OPT_WITH_ARG("--config-format-revision",
