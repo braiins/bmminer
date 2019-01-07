@@ -941,7 +941,7 @@ static char __maybe_unused *set_int_0_to_4(const char *arg, int *i)
     return set_int_range(arg, i, 0, 4);
 }
 
-static const char *parse_optlist(const char *arg, int *out, int out_size, const char *(*fn)(const char *s, int *ret))
+static const char *opt_parse_optlist(const char *arg, int *out, int out_size, const char *(*fn)(const char *s, int *ret))
 {
 	char *list = strdupa(arg);
 	int argc;
@@ -952,7 +952,7 @@ static const char *parse_optlist(const char *arg, int *out, int out_size, const 
 	for (int i = 0; i < argc; i++) {
 		const char *s = argv[i];
 
-		/* if "s" is empty, leave "default" */
+		/* if "s" is not empty, parse value, otherwise leave it as it is */
 		if (strlen(s) > 0) {
 			const char *err = fn(s, &out[i]);
 			if (err)
@@ -968,8 +968,7 @@ static const char *parse_optlist(const char *arg, int *out, int out_size, const 
 	return 0;
 }
 
-
-static const char *parse_voltage(const char *s, int *volt)
+static const char *opt_parse_voltage(const char *s, int *volt)
 {
 	char *end;
 	double x;
@@ -983,7 +982,7 @@ static const char *parse_voltage(const char *s, int *volt)
 	return 0;
 }
 
-static const char *parse_frequency(const char *s, int *freq)
+static const char *opt_parse_frequency(const char *s, int *freq)
 {
 	char *end;
 
@@ -1028,15 +1027,14 @@ static void opt_show_fan_ctrl(char buf[OPT_SHOW_LEN], const int *i)
 	opt_show_enum(fan_ctrl_modes, buf, i);
 }
 
-
-static const char *set_voltages(const char *arg, int *voltages)
+static const char *opt_set_voltages(const char *arg, int *voltages)
 {
-	return parse_optlist(arg, voltages, BITMAIN_MAX_CHAIN_NUM, parse_voltage);
+	return opt_parse_optlist(arg, voltages, BITMAIN_MAX_CHAIN_NUM, opt_parse_voltage);
 }
 
-static const char *set_frequencies(const char *arg, int *freqs)
+static const char *opt_set_frequencies(const char *arg, int *freqs)
 {
-	return parse_optlist(arg, freqs, BITMAIN_MAX_CHAIN_NUM, parse_frequency);
+	return opt_parse_optlist(arg, freqs, BITMAIN_MAX_CHAIN_NUM, opt_parse_frequency);
 }
 
 
@@ -1663,12 +1661,12 @@ static struct opt_table opt_config_table[] =
 
 #ifdef USE_BITMAIN_C5
     OPT_WITH_ARG_DEF("--bitmain-freq",
-    set_frequencies, 0, &chain_frequency_settings,
+    opt_set_frequencies, 0, &chain_frequency_settings,
     "Set frequencies",
     &opt_bitmain_freq_set),
 
     OPT_WITH_ARG_DEF("--bitmain-voltage",
-    set_voltages, 0, &chain_voltage_settings,
+    opt_set_voltages, 0, &chain_voltage_settings,
     "Set voltages",
     &opt_bitmain_voltage_set),
 
@@ -6073,7 +6071,7 @@ void write_config(FILE *fcfg)
             }
 
             if (opt->type & OPT_HASARG &&
-                ((void *)opt->cb_arg == set_voltages))
+                ((void *)opt->cb_arg == opt_set_voltages))
             {
                 fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
 		write_voltages(fcfg, chain_voltage_settings);
@@ -6082,7 +6080,7 @@ void write_config(FILE *fcfg)
             }
 
             if (opt->type & OPT_HASARG &&
-                ((void *)opt->cb_arg == set_frequencies))
+                ((void *)opt->cb_arg == opt_set_frequencies))
             {
                 fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
 		write_frequencies(fcfg, chain_frequency_settings);
