@@ -1546,19 +1546,19 @@ static struct opt_table opt_config_table[] =
 
 
     OPT_WITH_ARG("--version-file",
-    set_version_path, NULL, opt_hidden,
+    set_version_path, NULL, &opt_set_null,
     "Set miner version file"),
 
     OPT_WITH_ARG("--logfile-openflag",
-    set_logfile_openflag, NULL, opt_hidden,
+    set_logfile_openflag, NULL, &opt_set_null,
     "Set log file open flag, default: a+"),
 
     OPT_WITH_ARG("--logwork",
-    set_logwork_path, NULL, opt_hidden,
+    set_logwork_path, NULL, &opt_set_null,
     "Set log work file path, following: minertext"),
 
     OPT_WITH_ARG("--logwork-asicnum",
-    set_logwork_asicnum, NULL, opt_hidden,
+    set_logwork_asicnum, NULL, &opt_set_null,
     "Set log work asic num, following: 1, 32, 64"),
 
     OPT_WITHOUT_ARG("--logwork-diff",
@@ -1566,7 +1566,7 @@ static struct opt_table opt_config_table[] =
     "Allow log work diff"),
 
     OPT_WITH_ARG("--logfile",
-    set_logfile_path, NULL, opt_hidden,
+    set_logfile_path, NULL, &opt_set_null,
     "Set log file, default: bmminer.log"),
 
     OPT_WITH_ARG("--api-allow",
