@@ -30,7 +30,23 @@ struct opt_table;
  *  OPT_WITH_ARG()
  */
 #define OPT_WITHOUT_ARG(names, cb, arg, desc)   \
-    { (names), OPT_CB_NOARG((cb), (arg)), { (arg) }, (desc) }
+    { (names), OPT_CB_NOARG((cb), (arg)), { (arg) }, (desc), NULL }
+
+/* The meaning of "_DEF" variants of OPT_ functions:
+ *
+ * The option table is re-used by config file serializer (the "save"/dosave()
+ * API command). We do not want to serialize options that are "default" to not
+ * clutter the config file and to not serialize "defauls" that could change in
+ * future version.
+ *
+ * The API parser stores 1 to int pointed by "was_set" if this option was parsed. The
+ * serializer serializes the option only if "was_set" is NULL or the value pointed
+ * by "was_set" is non-zero. Code that changes "opt_*" variables has the
+ * responsibility to also store 1 in respective "was_set" variables.
+ */
+
+#define OPT_WITHOUT_ARG_DEF(names, cb, arg, desc, was_set)   \
+    { (names), OPT_CB_NOARG((cb), (arg)), { (arg) }, (desc), (was_set) }
 
 /**
  * OPT_WITH_ARG() - macro for initializing long and short option (with arg)
@@ -65,14 +81,22 @@ struct opt_table;
  *  OPT_WITHOUT_ARG()
  */
 #define OPT_WITH_ARG(name, cb, show, arg, desc) \
-    { (name), OPT_CB_ARG((cb), (show), (arg)), { (arg) }, (desc) }
+    { (name), OPT_CB_ARG((cb), (show), (arg)), { (arg) }, (desc), NULL }
+
+/* see above for _DEF */
+#define OPT_WITH_ARG_DEF(name, cb, show, arg, desc, was_set) \
+    { (name), OPT_CB_ARG((cb), (show), (arg)), { (arg) }, (desc), (was_set) }
 
 /**
  * OPT_WITH_CBARG() - variant of OPT_WITH_ARG which assigns arguments to arg
  * and then performs the callback function on the args as well.
  */
 #define OPT_WITH_CBARG(name, cb, show, arg, desc)   \
-    { (name), OPT_CB_WITHARG((cb), (show), (arg)), { (arg) }, (desc) }
+    { (name), OPT_CB_WITHARG((cb), (show), (arg)), { (arg) }, (desc), NULL }
+
+/* see above for _DEF */
+#define OPT_WITH_CBARG_DEF(name, cb, show, arg, desc, was_set)   \
+    { (name), OPT_CB_WITHARG((cb), (show), (arg)), { (arg) }, (desc), (was_set) }
 
 /**
  * OPT_SUBTABLE() - macro for including another table inside a table.
@@ -82,14 +106,14 @@ struct opt_table;
 #define OPT_SUBTABLE(table, desc)                   \
     { (const char *)(table), OPT_SUBTABLE,              \
       sizeof(_check_is_entry(table)) ? NULL : NULL, NULL, NULL, \
-      { NULL }, (desc) }
+      { NULL }, (desc), NULL }
 
 /**
  * OPT_ENDTABLE - macro to create final entry in table.
  *
  * This must be the final element in the opt_table array.
  */
-#define OPT_ENDTABLE { NULL, OPT_END, NULL, NULL, NULL, { NULL }, NULL }
+#define OPT_ENDTABLE { NULL, OPT_END, NULL, NULL, NULL, { NULL }, NULL, NULL }
 
 /**
  * opt_register_table - register a table of options
@@ -325,6 +349,7 @@ struct opt_table
         size_t tlen;
     } u;
     const char *desc;
+    int *was_set;
 };
 
 /* Resolves to the four parameters for non-arg callbacks. */

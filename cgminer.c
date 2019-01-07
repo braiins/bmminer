@@ -2016,6 +2016,8 @@ static char *parse_config(json_t *config, bool fileconf)
             {
                 str = json_string_value(val);
                 err = opt->cb_arg(str, opt->u.arg);
+                if (opt->was_set != NULL)
+                    *opt->was_set = 1;
 
                 if (opt->type == OPT_PROCESSARG)
                 {
@@ -2033,6 +2035,8 @@ static char *parse_config(json_t *config, bool fileconf)
                     {
                         str = json_string_value(arr_val);
                         err = opt->cb_arg(str, opt->u.arg);
+                        if (opt->was_set != NULL)
+                            *opt->was_set = 1;
 
                         if (opt->type == OPT_PROCESSARG)
                         {
@@ -2052,6 +2056,8 @@ static char *parse_config(json_t *config, bool fileconf)
             else if ((opt->type & OPT_NOARG) && json_is_true(val))
             {
                 err = opt->cb(opt->u.arg);
+                if (opt->was_set != NULL)
+                    *opt->was_set = 1;
             }
             else
             {
@@ -6020,6 +6026,9 @@ void write_config(FILE *fcfg)
             {
                 continue;
             }
+            /* is option do-not-show-by-default and no-one changed its default value? */
+            if (opt->was_set != NULL && !*opt->was_set)
+                continue;
 
             if (opt->type & OPT_NOARG &&
                 ((void *)opt->cb == (void *)opt_set_bool || (void *)opt->cb == (void *)opt_set_invbool) &&
