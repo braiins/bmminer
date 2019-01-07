@@ -249,6 +249,9 @@ char *fan_pwm_data = (char*) 20;
 bool fan_ctrl_type = TRUE;
 #endif
 
+int opt_bitmain_voltage_set = 0;
+int opt_bitmain_freq_set = 0;
+
 int opt_fan_ctrl = FAN_MODE_TEMP;
 int opt_fan_temp = DEFAULT_TARGET_TEMP;
 int opt_fan_speed = 100;
@@ -1659,13 +1662,15 @@ static struct opt_table opt_config_table[] =
 
 
 #ifdef USE_BITMAIN_C5
-    OPT_WITH_ARG("--bitmain-freq",
+    OPT_WITH_ARG_DEF("--bitmain-freq",
     set_frequencies, 0, &chain_frequency_settings,
-    "Set frequencies"),
+    "Set frequencies",
+    &opt_bitmain_freq_set),
 
-    OPT_WITH_ARG("--bitmain-voltage",
+    OPT_WITH_ARG_DEF("--bitmain-voltage",
     set_voltages, 0, &chain_voltage_settings,
-    "Set voltages"),
+    "Set voltages",
+    &opt_bitmain_voltage_set),
 
     OPT_WITHOUT_ARG("--fixed-freq",
     opt_set_bool, &opt_fixed_freq,
