@@ -1796,7 +1796,7 @@ static struct opt_table opt_config_table[] =
     "Set time in seconds to fall back to a higher priority pool after period of instability"),
 
     OPT_WITH_ARG("--hotplug",
-    set_int_0_to_9999, NULL, &hotplug_time,
+    set_int_0_to_9999, opt_show_intval, &hotplug_time,
 #ifdef USE_USBUTILS
     "Seconds between hotplug checks (0 means never check)"
 #else
@@ -1904,7 +1904,7 @@ static struct opt_table opt_config_table[] =
     "Append share log to file"),
 
     OPT_WITH_ARG("--shares",
-    opt_set_intval, NULL, &opt_shares,
+    opt_set_intval, opt_show_intval, &opt_shares,
     "Quit after mining N shares (default: unlimited)"),
 
     OPT_WITH_ARG("--socks-proxy",
@@ -1912,11 +1912,11 @@ static struct opt_table opt_config_table[] =
     "Set socks4 proxy (host:port)"),
 
     OPT_WITH_ARG("--suggest-diff",
-    opt_set_intval, NULL, &opt_suggest_diff,
+    opt_set_intval, opt_show_intval, &opt_suggest_diff,
     "Suggest miner difficulty for pool to user (default: none)"),
 
     OPT_WITH_ARG("--multi-version",
-    opt_set_intval, NULL, &opt_multi_version,
+    opt_set_intval, opt_show_intval, &opt_multi_version,
     "Multi version mining!"),
 
 #ifdef HAVE_SYSLOG_H
@@ -6019,29 +6019,7 @@ void write_config(FILE *fcfg)
                 continue;
             }
 
-            if (opt->type & OPT_HASARG &&
-                ((void *)opt->cb_arg == (void *)opt_set_intval ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_9999 ||
-                 (void *)opt->cb_arg == (void *)set_int_1_to_65535 ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_10 ||
-                 (void *)opt->cb_arg == (void *)set_int_1_to_10 ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_100 ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_255 ||
-                 (void *)opt->cb_arg == (void *)set_int_1_to_255 ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_7680 ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_200 ||
-                 (void *)opt->cb_arg == (void *)set_int_0_to_4 ||
-                 (void *)opt->cb_arg == (void *)set_int_32_to_63 ||
-                 (void *)opt->cb_arg == (void *)set_int_22_to_75 ||
-                 (void *)opt->cb_arg == (void *)set_int_42_to_85 ||
-                 (void *)opt->cb_arg == (void *)set_int_22_to_55 ||
-                 (void *)opt->cb_arg == (void *)set_int_42_to_65))
-            {
-                fprintf(fcfg, ",\n\"%s\" : \"%d\"", p+2, *(int *)opt->u.arg);
-                continue;
-            }
-
-            /* Printing options: the invariant is
+            /* Printing option with argument: the invariant is
              *
              * - either option has "show()" method and we can use it to
              *   print the argument
