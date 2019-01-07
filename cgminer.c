@@ -220,11 +220,15 @@ bool opt_logwork_diff = false;
 char *opt_api_allow = NULL;
 char *opt_api_groups;
 char *opt_api_description = "bmminer " BOS_SMALL_VERSION_STRING;
+int opt_api_description_set = 0;
 int opt_api_port = 4028;
+int opt_api_port_set = 0;
 char *opt_api_host = API_LISTEN_ADDR;
+int opt_api_host_set = 0;
 
 bool opt_api_listen;
 bool opt_api_mcast;
+int opt_api_mcast_set;
 
 char *opt_api_mcast_addr = API_MCAST_ADDR;
 char *opt_api_mcast_code = API_MCAST_CODE;
@@ -1573,9 +1577,10 @@ static struct opt_table opt_config_table[] =
     opt_set_charp, NULL, &opt_api_allow,
     "Allow API access only to the given list of [G:]IP[/Prefix] addresses[/subnets]"),
 
-    OPT_WITH_ARG("--api-description",
+    OPT_WITH_ARG_DEF("--api-description",
     opt_set_charp, NULL, &opt_api_description,
-    "Description placed in the API status header, default: cgminer version"),
+    "Description placed in the API status header, default: cgminer version",
+    &opt_api_description_set),
 
     OPT_WITH_ARG("--api-groups",
     opt_set_charp, NULL, &opt_api_groups,
@@ -1585,37 +1590,44 @@ static struct opt_table opt_config_table[] =
     opt_set_bool, &opt_api_listen,
     "Enable API, default: disabled"),
 
-    OPT_WITHOUT_ARG("--api-mcast",
+    OPT_WITHOUT_ARG_DEF("--api-mcast",
     opt_set_bool, &opt_api_mcast,
-    "Enable API Multicast listener, default: disabled"),
+    "Enable API Multicast listener, default: disabled",
+    &opt_api_mcast_set),
 
-    OPT_WITH_ARG("--api-mcast-addr",
+    OPT_WITH_ARG_DEF("--api-mcast-addr",
     opt_set_charp, NULL, &opt_api_mcast_addr,
-    "API Multicast listen address"),
+    "API Multicast listen address",
+    &opt_api_mcast_set),
 
-    OPT_WITH_ARG("--api-mcast-code",
+    OPT_WITH_ARG_DEF("--api-mcast-code",
     opt_set_charp, NULL, &opt_api_mcast_code,
-    "Code expected in the API Multicast message, don't use '-'"),
+    "Code expected in the API Multicast message, don't use '-'",
+    &opt_api_mcast_set),
 
-    OPT_WITH_ARG("--api-mcast-des",
+    OPT_WITH_ARG_DEF("--api-mcast-des",
     opt_set_charp, NULL, &opt_api_mcast_des,
-    "Description appended to the API Multicast reply, default: ''"),
+    "Description appended to the API Multicast reply, default: ''",
+    &opt_api_mcast_set),
 
-    OPT_WITH_ARG("--api-mcast-port",
+    OPT_WITH_ARG_DEF("--api-mcast-port",
     set_int_1_to_65535, opt_show_intval, &opt_api_mcast_port,
-    "API Multicast listen port"),
+    "API Multicast listen port",
+    &opt_api_mcast_set),
 
     OPT_WITHOUT_ARG("--api-network",
     opt_set_bool, &opt_api_network,
     "Allow API (if enabled) to listen on/for any address, default: only 127.0.0.1"),
 
-    OPT_WITH_ARG("--api-port",
+    OPT_WITH_ARG_DEF("--api-port",
     set_int_1_to_65535, opt_show_intval, &opt_api_port,
-    "Port number of miner API"),
+    "Port number of miner API",
+    &opt_api_port_set),
 
-    OPT_WITH_ARG("--api-host",
+    OPT_WITH_ARG_DEF("--api-host",
     opt_set_charp, NULL, &opt_api_host,
-    "Specify API listen address, default: 0.0.0.0"),
+    "Specify API listen address, default: 0.0.0.0",
+    &opt_api_host_set),
 
     OPT_WITHOUT_ARG("--balance",
     set_balance, &pool_strategy,
