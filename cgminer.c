@@ -1011,6 +1011,7 @@ static void opt_show_enum(const char **options, char buf[OPT_SHOW_LEN], const in
 static const char *fan_ctrl_modes[] = {
 	"temp",
 	"speed",
+	"emergency",
 	0,
 };
 

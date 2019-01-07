@@ -3103,31 +3103,38 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
     if (argc < 1)
         goto done;
 
-    mutex_lock(&fancontrol_lock);
     switch (argv[0][0]) {
 	/* emergency mode: fans on full */
         case 'e':
-            fancontrol_setmode_emergency(&fancontrol);
+            opt_fan_ctrl = FAN_MODE_EMERGENCY;
+            opt_fan_ctrl_set = 1;
+            bitmain_reconfigure_fans();
             ok = 1;
             break;
 	/* pwm mode - arg is fixed speed in %, PID is disabled */
-        case 'p':
+        case 's':
             if (argc < 2)
                 break;
             n = atoi(argv[1]);
             if (n < 0 || n > 100)
                 break;
-            fancontrol_setmode_manual(&fancontrol, n);
+            opt_fan_ctrl = FAN_MODE_SPEED;
+            opt_fan_speed = n;
+            opt_fan_ctrl_set = 1;
+            bitmain_reconfigure_fans();
             ok = 1;
             break;
 	/* temperature mode - arg is target temperature, PID enabled */
         case 't':
             if (argc < 2)
                 break;
-            f = atof(argv[1]);
-            if (f < 30 || f > 100)
+            n = atoi(argv[1]);
+            if (n < 30 || n > 100)
                 break;
-            fancontrol_setmode_auto(&fancontrol, f);
+            opt_fan_ctrl = FAN_MODE_TEMP;
+            opt_fan_temp = n;
+            opt_fan_ctrl_set = 1;
+            bitmain_reconfigure_fans();
             ok = 1;
             break;
 	/* just feed some numbers into pid controller */
@@ -3136,11 +3143,12 @@ static void fanctrl(struct io_data *io_data, __maybe_unused SOCKETTYPE c, char *
                 break;
             n = atoi(argv[1]);
             f = atof(argv[2]);
+            mutex_lock(&fancontrol_lock);
             fancontrol_calculate(&fancontrol, n, f);
+            mutex_unlock(&fancontrol_lock);
             ok = 1;
             break;
     }
-    mutex_unlock(&fancontrol_lock);
 
 done:
     if (args != 0)

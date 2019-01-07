@@ -305,10 +305,12 @@ enum pool_strategy
     POOL_BALANCE,
 };
 
+/* must match string array fan_ctrl_modes */
 enum fan_modes
 {
     FAN_MODE_TEMP,
     FAN_MODE_SPEED,
+    FAN_MODE_EMERGENCY,
 };
 
 #define TOP_STRATEGY (POOL_BALANCE)
@@ -1010,6 +1012,7 @@ extern bool opt_restart;
 extern int opt_fan_temp;
 extern int opt_fan_speed;
 extern int opt_fan_ctrl;
+extern int opt_fan_ctrl_set;
 extern float opt_overclock;
 
 extern bool opt_worktime;

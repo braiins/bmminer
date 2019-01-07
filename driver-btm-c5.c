@@ -10097,6 +10097,19 @@ void set_frequency(void)
         system("cp /tmp/lasttemp /tmp/err3.log -f");
     }
 
+int bitmain_reconfigure_fans(void)
+{
+	mutex_lock(&fancontrol_lock);
+	if (opt_fan_ctrl == FAN_MODE_TEMP) {
+		applog(LOG_NOTICE, "AUTOMATIC fan control, target temperature %d degrees", opt_fan_temp);
+		fancontrol_setmode_auto(&fancontrol, opt_fan_temp);
+	} else {
+		applog(LOG_NOTICE, "MANUAL fan control, target speed %d%%", opt_fan_speed);
+		fancontrol_setmode_manual(&fancontrol, opt_fan_speed);
+	}
+	mutex_unlock(&fancontrol_lock);
+}
+
     int bitmain_c5_init(struct init_config config)
     {
         char ret=0,j;
@@ -10687,14 +10700,10 @@ void set_frequency(void)
 	/* initialize fancontrol */
 	mutex_lock(&fancontrol_lock);
 	fancontrol_init(&fancontrol);
-	if (opt_fan_ctrl == FAN_MODE_TEMP) {
-		applog(LOG_NOTICE, "AUTOMATIC fan control, target temperature %d degrees", opt_fan_temp);
-		fancontrol_setmode_auto(&fancontrol, opt_fan_temp);
-	} else {
-		applog(LOG_NOTICE, "MANUAL fan control, target speed %d%%", opt_fan_speed);
-		fancontrol_setmode_manual(&fancontrol, opt_fan_speed);
-	}
 	mutex_unlock(&fancontrol_lock);
+
+        /* do fan reconfiguration */
+        bitmain_reconfigure_fans();
 
         //check who control fan
         dev->fan_eft = config_parameter.fan_eft;

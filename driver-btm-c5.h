@@ -927,6 +927,7 @@ int getVolValueFromPICvoltage(unsigned char vol_pic);
 
 extern pthread_mutex_t fancontrol_lock;
 extern struct fancontrol fancontrol;
+int bitmain_reconfigure_fans(void);
 
 #endif
 
