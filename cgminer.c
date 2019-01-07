@@ -249,8 +249,8 @@ char *fan_pwm_data = (char*) 20;
 bool fan_ctrl_type = TRUE;
 #endif
 
-int opt_bitmain_voltage_set = 0;
-int opt_bitmain_freq_set = 0;
+char *opt_bitmain_freq = NULL;
+char *opt_bitmain_voltage = NULL;
 
 int opt_fan_ctrl = FAN_MODE_TEMP;
 int opt_fan_temp = DEFAULT_TARGET_TEMP;
@@ -1027,14 +1027,14 @@ static void opt_show_fan_ctrl(char buf[OPT_SHOW_LEN], const int *i)
 	opt_show_enum(fan_ctrl_modes, buf, i);
 }
 
-static const char *opt_set_voltages(const char *arg, int *voltages)
+static const char *opt_set_voltages(const char *arg)
 {
-	return opt_parse_optlist(arg, voltages, BITMAIN_MAX_CHAIN_NUM, opt_parse_voltage);
+	return opt_parse_optlist(arg, chain_voltage_settings, BITMAIN_MAX_CHAIN_NUM, opt_parse_voltage);
 }
 
-static const char *opt_set_frequencies(const char *arg, int *freqs)
+static const char *opt_set_frequencies(const char *arg)
 {
-	return opt_parse_optlist(arg, freqs, BITMAIN_MAX_CHAIN_NUM, opt_parse_frequency);
+	return opt_parse_optlist(arg, chain_frequency_settings, BITMAIN_MAX_CHAIN_NUM, opt_parse_frequency);
 }
 
 
@@ -1660,15 +1660,13 @@ static struct opt_table opt_config_table[] =
 
 
 #ifdef USE_BITMAIN_C5
-    OPT_WITH_ARG_DEF("--bitmain-freq",
-    opt_set_frequencies, 0, &chain_frequency_settings,
-    "Set frequencies",
-    &opt_bitmain_freq_set),
+    OPT_WITH_CBARG("--bitmain-freq",
+    opt_set_frequencies, 0, &opt_bitmain_freq,
+    "Set frequencies"),
 
-    OPT_WITH_ARG_DEF("--bitmain-voltage",
-    opt_set_voltages, 0, &chain_voltage_settings,
-    "Set voltages",
-    &opt_bitmain_voltage_set),
+    OPT_WITH_CBARG("--bitmain-voltage",
+    opt_set_voltages, 0, &opt_bitmain_voltage,
+    "Set voltages"),
 
     OPT_WITHOUT_ARG("--fixed-freq",
     opt_set_bool, &opt_fixed_freq,
@@ -5954,33 +5952,6 @@ static char *json_escape(char *str)
     return buf;
 }
 
-static void write_voltages(FILE *fcfg, const int *voltages)
-{
-	int i, n;
-
-	for (n = BITMAIN_MAX_CHAIN_NUM; n > 0; n--) {
-		if (voltages[n - 1] != 0)
-			break;
-	}
-	for (i = 0; i < n; i++) {
-		fprintf(fcfg, "%s%.2lf", i > 0 ? "," : "", voltages[i] / 100.0);
-	}
-}
-
-static void write_frequencies(FILE *fcfg, const int *freqs)
-{
-	int i, n;
-
-	for (n = BITMAIN_MAX_CHAIN_NUM; n > 0; n--) {
-		if (freqs[n - 1] != 0)
-			break;
-	}
-	for (i = 0; i < n; i++) {
-		fprintf(fcfg, "%s%d", i > 0 ? "," : "", freqs[i]);
-	}
-}
-
-
 void write_config(FILE *fcfg)
 {
     struct opt_table *opt;
@@ -6070,41 +6041,29 @@ void write_config(FILE *fcfg)
                 continue;
             }
 
-            if (opt->type & OPT_HASARG &&
-                ((void *)opt->cb_arg == opt_set_voltages))
-            {
-                fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
-		write_voltages(fcfg, chain_voltage_settings);
-                fprintf(fcfg, "\"");
-                continue;
-            }
-
-            if (opt->type & OPT_HASARG &&
-                ((void *)opt->cb_arg == opt_set_frequencies))
-            {
-                fprintf(fcfg, ",\n\"%s\" : \"", p + 2);
-		write_frequencies(fcfg, chain_frequency_settings);
-                fprintf(fcfg, "\"");
-                continue;
-            }
-
-            if ((opt->type & OPT_HASARG) && opt->show != NULL) {
-                char buf[OPT_SHOW_LEN];
-                opt->show(buf, opt->u.arg);
-                fprintf(fcfg, ",\n\"%s\" : \"%s\"", p+2, buf);
-                continue;
-	    }
-
-            if (opt->type & (OPT_HASARG | OPT_PROCESSARG) &&
-                (opt->u.arg != &opt_set_null))
-            {
-                char *carg = *(char **)opt->u.arg;
-
-                if (carg)
-                {
-                    fprintf(fcfg, ",\n\"%s\" : \"%s\"", p+2, json_escape(carg));
+            /* Printing options: the invariant is
+             *
+             * - either option has "show()" method and we can use it to
+             *   print the argument
+             *
+             * - or we cannot show it (argument is to opt_set_null)
+             *
+             * - or the argument is pointer to char and we can print it
+             *   directly (provided it is not NULL)
+             */
+            if ((opt->type & (OPT_HASARG | OPT_PROCESSARG)) != 0) {
+                if (opt->show == NULL) {
+                    if (opt->u.arg != &opt_set_null) {
+                        char *carg = *(char **)opt->u.arg;
+                        if (carg) {
+                            fprintf(fcfg, ",\n\"%s\" : \"%s\"", p+2, json_escape(carg));
+                        }
+                    }
+                } else {
+                    char buf[OPT_SHOW_LEN];
+                    opt->show(buf, opt->u.arg);
+                    fprintf(fcfg, ",\n\"%s\" : \"%s\"", p+2, buf);
                 }
-
                 continue;
             }
         }
