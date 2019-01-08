@@ -1,10 +1,5 @@
 #include "pid_controller.h"
-
-/* Temperature limits (model specific?) */
-#define DANGEROUS_TEMP		95
-#define HOT_TEMP		90
-#define DEFAULT_TARGET_TEMP     75
-#define MIN_TEMP 		1
+#include "temp-def.h"
 
 /* keep in sync with fancontrol_mode_name */
 enum fancontrol_mode {
