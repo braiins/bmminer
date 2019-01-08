@@ -238,6 +238,7 @@ char displayed_rate[BITMAIN_MAX_CHAIN_NUM][32];
 /* these are freq/voltage settings requested by user (numbered from first existent chain) */
 int chain_voltage_settings[BITMAIN_MAX_CHAIN_NUM] = {0};
 int chain_frequency_settings[BITMAIN_MAX_CHAIN_NUM] = {0};
+const char *chain_frequency_desc[BITMAIN_MAX_CHAIN_NUM] = { 0 };
 /* these are freq/voltage settings actually used (numbered by physical connection) */
 uint8_t chain_voltage_pic[BITMAIN_MAX_CHAIN_NUM] = {0xff};
 int chain_voltage_value[BITMAIN_MAX_CHAIN_NUM] = {0};
@@ -3992,6 +3993,42 @@ void set_Hardware_version(unsigned int value)
         pthread_mutex_unlock(&init_log_mutex);
     }
 
+const char *make_freq_desc(int orig_freq, const char *orig_source, float opt_overclock, int new_freq)
+{
+	char *msg = NULL;
+	int ret;
+
+	ret = asprintf(&msg, "%s frequency %d MHz", orig_source, orig_freq);
+	if (ret < 0)
+		return NULL;
+
+	if (opt_overclock != 0) {
+		char *msg2 = 0;
+		ret = asprintf(&msg2, "%s, overclocked by factor %.3lf to %d MHz",
+			msg, opt_overclock, new_freq);
+		if (ret < 0) {
+			free(msg);
+			return NULL;
+		}
+		free(msg);
+		msg = msg2;
+	}
+	return msg;
+}
+
+int calc_avg_freq(int i)
+{
+	int n_asic = dev->chain_asic_num[i];
+	if (n_asic == 0)
+		return 0;
+
+	int sum_freq = 0;
+	for (int j = 0; j < n_asic; j++)
+		sum_freq += get_freqvalue_by_index(last_freq[i][j*2+3]);
+
+	return sum_freq / n_asic;
+}
+
 void set_frequency(void)
 {
 	int i, j;
@@ -4003,6 +4040,8 @@ void set_frequency(void)
 	int chain_id; /* chain_id holds current "existing chain" index */
 	for (i = 0, chain_id = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
 		if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
+			int orig_freq = 0;
+			const char *orig_source;
 			/* if MAGIC is there, then flash is valid */
 			int lastfreq_flash_valid = last_freq[i][1] == FREQ_MAGIC;
 			int badcore_flash_valid = badcore_num_buf[i][0] == BADCORE_MAGIC;
@@ -4043,6 +4082,8 @@ void set_frequency(void)
 								i, j, chain_badcore_num[i][j]);
 					}
 				}
+				orig_freq = calc_avg_freq(i);
+				orig_source = "factory set";
 			} else {
 				applog(LOG_NOTICE, "chain %d: using default freq %d", i, default_freq);
 				/* no, fill in defaults */
@@ -4056,6 +4097,8 @@ void set_frequency(void)
 					last_freq[i][j*2+2] = 0;
 					last_freq[i][j*2+3] = default_freq_index;
 				}
+				orig_freq = default_freq;
+				orig_source = "cgminer default";
 			}
 
 			/* if frequency was requested in config, then do an override */
@@ -4079,6 +4122,8 @@ void set_frequency(void)
 					last_freq[i][j*2+3] = target_freq_index;
 				}
 				/* XXX: should we clear chain_badcore_num? */
+				orig_freq = requested_freq;
+				orig_source = "user defined";
 			} else {
 				if (opt_overclock != 0) {
 					applog(LOG_NOTICE, "chain %d: overclocking whole chain by factor %.3f",
@@ -4101,6 +4146,10 @@ void set_frequency(void)
 				if (last_freq[i][j*2+3] > max_freq_index)
 					max_freq_index = last_freq[i][j*2+3];
 			}
+
+			/* make description of chain frequency */
+			chain_frequency_desc[i] = make_freq_desc(orig_freq, orig_source,
+				opt_overclock, calc_avg_freq(i));
 
 			chain_id++;
 		}
@@ -12163,6 +12212,14 @@ int bitmain_reconfigure_fans(void)
             root = api_add_int16(root, temp3_name, &(dev->chain_asic_temp[i][1][TEMP_POS_MIDDLE]), copy_data);
         }
 
+        for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
+        {
+            char freq_desc[16];
+            sprintf(freq_desc,"freq_desc%d",i+1);
+            if (chain_frequency_desc[i]) {
+                root = api_add_const(root, freq_desc, chain_frequency_desc[i], false);
+            }
+	}
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
             char freq_sum[12];
