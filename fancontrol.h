@@ -8,6 +8,8 @@ enum fancontrol_mode {
 	FANCTRL_MANUAL,
 };
 
+#define FANCTRL_MAX_LOG_AGE (24*3600)
+
 extern const char *fancontrol_mode_name[];
 
 struct fancontrol {
@@ -18,6 +20,7 @@ struct fancontrol {
 	int fan_duty;
 	double started, last_calc;
 	double last_dt, last_temp;
+	double log_started;
 	FILE *log;
 	PIDControl pid;
 };

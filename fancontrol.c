@@ -42,7 +42,6 @@ cgtime_float(void)
 	return tv.tv_sec + (double)tv.tv_usec / 1e6;
 }
 
-
 static void
 fanlog(struct fancontrol *fc, const char *fmt, ...)
 {
@@ -65,6 +64,29 @@ fanlog(struct fancontrol *fc, const char *fmt, ...)
 
 	fprintf(fc->log, "\n");
 	fflush(fc->log);
+}
+
+static void
+fancontrol_openlog(struct fancontrol *fc)
+{
+	fc->log = fopen("/tmp/fancontrol.log", "w");
+	fc->log_started = cgtime_float();
+}
+
+/* if log is older than MAX_LOG_AGE hours, then reopen it
+ * (so we won't make too big file in tmpfs
+ */
+static void
+fancontrol_check_reset_log(struct fancontrol *fc, double now)
+{
+	if (fc->log != NULL) {
+		double log_age = now - fc->log_started;
+		if (log_age >= FANCTRL_MAX_LOG_AGE) {
+			fclose(fc->log);
+			fancontrol_openlog(fc);
+			fanlog(fc, "--- log reopened ---");
+		}
+	}
 }
 
 void
@@ -169,6 +191,10 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	fc->last_dt = dt;
 	fc->fan_duty = fan_duty;
 
+
+	/* reset log every ... hours */
+	fancontrol_check_reset_log(fc, now);
+
 	fanlog(fc, "output: fan_duty=%d dt=%.2lf mode=%d",
 		fc->fan_duty, dt, fc->mode);
 
@@ -178,7 +204,7 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 void
 fancontrol_init(struct fancontrol *fc)
 {
-	fc->log = fopen("/tmp/fancontrol.log", "w");
+	fancontrol_openlog(fc);
 	fanlog(fc, "PID initializing");
 
 	fc->initializing = 1;
