@@ -10103,9 +10103,12 @@ int bitmain_reconfigure_fans(void)
 	if (opt_fan_ctrl == FAN_MODE_TEMP) {
 		applog(LOG_NOTICE, "AUTOMATIC fan control, target temperature %d degrees", opt_fan_temp);
 		fancontrol_setmode_auto(&fancontrol, opt_fan_temp);
-	} else {
+        } else if (opt_fan_ctrl == FAN_MODE_SPEED) {
 		applog(LOG_NOTICE, "MANUAL fan control, target speed %d%%", opt_fan_speed);
 		fancontrol_setmode_manual(&fancontrol, opt_fan_speed);
+	} else {
+		applog(LOG_NOTICE, "EMERGENCY fan control, fans to full");
+		fancontrol_setmode_emergency(&fancontrol);
 	}
 	mutex_unlock(&fancontrol_lock);
 }
