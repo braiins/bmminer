@@ -8,7 +8,9 @@ enum fancontrol_mode {
 	FANCTRL_MANUAL,
 };
 
-#define FANCTRL_MAX_LOG_AGE (24*3600)
+#define FANCTRL_MAX_LOG_AGE (3*3600)
+#define FANCTRL_LOG_NAME "/tmp/fanctrl.log"
+#define FANCTRL_OLDLOG_NAME "/tmp/fanctrl.prev.log"
 
 extern const char *fancontrol_mode_name[];
 

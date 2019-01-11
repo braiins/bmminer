@@ -69,7 +69,8 @@ fanlog(struct fancontrol *fc, const char *fmt, ...)
 static void
 fancontrol_openlog(struct fancontrol *fc)
 {
-	fc->log = fopen("/tmp/fancontrol.log", "w");
+	fc->log = fopen(FANCTRL_LOG_NAME, "w");
+	/* we can't do anything, if we can't open the log */
 	fc->log_started = cgtime_float();
 }
 
@@ -77,12 +78,14 @@ fancontrol_openlog(struct fancontrol *fc)
  * (so we won't make too big file in tmpfs
  */
 static void
-fancontrol_check_reset_log(struct fancontrol *fc, double now)
+fancontrol_rotate_log(struct fancontrol *fc, double now)
 {
 	if (fc->log != NULL) {
 		double log_age = now - fc->log_started;
 		if (log_age >= FANCTRL_MAX_LOG_AGE) {
+			fanlog(fc, "--- rotating logs ---");
 			fclose(fc->log);
+			rename(FANCTRL_LOG_NAME, FANCTRL_OLDLOG_NAME);
 			fancontrol_openlog(fc);
 			fanlog(fc, "--- log reopened ---");
 		}
@@ -192,8 +195,8 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 	fc->fan_duty = fan_duty;
 
 
-	/* reset log every ... hours */
-	fancontrol_check_reset_log(fc, now);
+	/* rotate log every x hours */
+	fancontrol_rotate_log(fc, now);
 
 	fanlog(fc, "output: fan_duty=%d dt=%.2lf mode=%d",
 		fc->fan_duty, dt, fc->mode);
