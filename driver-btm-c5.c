@@ -5957,6 +5957,9 @@ void set_frequency(void)
                 buf[6] = (bauddiv & 0x1f);
                 buf[7] = 0x00;
             }
+            if (opt_multi_version > 1)
+                buf[7] |= MMEN;
+
             if(open_core)
                 buf[6] = buf[6]| GATEBCLK;
             buf[8] = 0;
