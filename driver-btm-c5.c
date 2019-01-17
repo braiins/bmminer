@@ -245,6 +245,14 @@ uint8_t chain_voltage_pic[BITMAIN_MAX_CHAIN_NUM] = {0xff};
 int chain_voltage_value[BITMAIN_MAX_CHAIN_NUM] = {0};
 int chain_frequency_value[BITMAIN_MAX_CHAIN_NUM] = {0};
 
+/* temperature sensors */
+#define BITMAIN_MAX_SENSORS_PER_CHAIN 4
+struct sensor chain_sensor[BITMAIN_MAX_CHAIN_NUM][BITMAIN_MAX_SENSORS_PER_CHAIN];
+int chain_n_sensors[BITMAIN_MAX_CHAIN_NUM];
+struct temp chain_sensor_temp[BITMAIN_MAX_CHAIN_NUM][BITMAIN_MAX_SENSORS_PER_CHAIN];
+struct temp chain_max_temp[BITMAIN_MAX_CHAIN_NUM];
+struct temp all_chain_max_temp;
+
 unsigned char hash_board_id[BITMAIN_MAX_CHAIN_NUM][12];
 
 int lowest_testOK_temp[BITMAIN_MAX_CHAIN_NUM]= {0}; // board test patten OK, we record temp in PIC, then we need keep board temp >= this lowest temp
@@ -3196,7 +3204,8 @@ void set_Hardware_version(unsigned int value)
         else temp_highest = dev->temp_top1[PWM_T];
 #endif
 	{
-		float hitemp = MAX(dev->temp_top1[PWM_T], dev->temp_top1[TEMP_POS_LOCAL]);
+		//float hitemp = MAX(dev->temp_top1[PWM_T], dev->temp_top1[TEMP_POS_LOCAL]);
+		float hitemp = MAX(all_chain_max_temp.remote, all_chain_max_temp.local);
 		int duty;
 		mutex_lock(&fancontrol_lock);
 		duty = fancontrol_calculate(&fancontrol, 1, hitemp);
@@ -7080,6 +7089,55 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
             return local_temp+35;
     }
 
+static void
+read_temperature_from_sensors(float *max)
+{
+	int i, j;
+
+	/* temperature accumulator over all chains */
+	struct temp all_max = ZERO_TEMP;
+
+	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+		/* temperature accumulator for this chain */
+		struct temp chain_max = ZERO_TEMP;
+
+		for (j = 0; j < chain_n_sensors[i]; j++) {
+			struct temp temp = ZERO_TEMP;
+			int ret;
+
+			/* read out temperature */
+			ret = sensor_read_temp(&chain_sensor[i][j], &temp);
+			if (ret < 0) {
+				/* temperature reading failed, use previous temperature */
+				temp = chain_sensor_temp[i][j];
+				sensor_log("sensors: %d/%d temperature read failed, using previous", i, j);
+			}
+			/* got temperature */
+			sensor_log("sensors: %d/%d temperature (%.1f,%.1f)", i, j,
+				temp.local, temp.remote);
+
+			/* accumulate */
+			max_temp(&chain_max, &temp);
+
+			/* store temperature for later use (API, etc.) */
+			chain_sensor_temp[i][j] = temp;
+		}
+		/* accumulate */
+		max_temp(&all_max, &chain_max);
+
+		/* store */
+		chain_max_temp[i] = chain_max;
+	}
+
+	/* got temperature */
+	sensor_log("sensors: overall max.temp. (%.1f,%.1f)",
+		all_max.local, all_max.remote);
+	/* store */
+	all_chain_max_temp = all_max;
+	/* overall maximum */
+	*max = MAX(all_max.local, all_max.remote);
+}
+
 #define OFFSIDE_TOP 125
 #define OFFSIDE_LOW 75
     void * read_temp_func()
@@ -7154,6 +7212,9 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
             sprintf(logstr,"Done check_asic_reg\n");
             writeLogFile(logstr);
 
+	    float max_temp = 0;
+            read_temperature_from_sensors(&max_temp);
+#if 0
             memset(temp_top,0x00,sizeof(temp_top));
             memset(temp_low,0x00,sizeof(temp_low));
 
@@ -7522,6 +7583,7 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
                 }
             }
 #endif
+#endif
             // only change fan speed after read temp value!!!
             check_fan();
 
@@ -7556,7 +7618,7 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
             }
 #endif
 
-#ifndef DISABLE_TEMP_PROTECT
+#if 0
             if(diff.tv_sec > 120 || dev->temp_top1[TEMP_POS_LOCAL] > MAX_PCB_TEMP // we use pcb temp to check protect or not
                || cur_fan_num < MIN_FAN_NUM /*|| dev->fan_speed_top1 < (MAX_FAN_SPEED * dev->fan_pwm / 150) */ )
             {
@@ -10912,10 +10974,24 @@ int bitmain_reconfigure_fans(void)
         {
             if(dev->chain_exist[i] == 1 && dev->chain_asic_num[i] == CHAIN_ASIC_NUM)
             {
-                calibration_sensor_offset(0x98,i);
+                chain_n_sensors[i] = probe_sensors(i, 0, chain_sensor[i], ARRAY_SIZE(chain_sensor[i]));
                 cgsleep_ms(10);
             }
         }
+
+        for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+            for (j = 0; j < chain_n_sensors[i]; j++) {
+                sensor_init(&chain_sensor[i][j]);
+            }
+        }
+#if 0
+        for (;;) {
+		float max;
+		read_temperature_from_sensors(&max);
+		applog(LOG_NOTICE, "max=%f", max);
+        }
+#endif
+
 
 #ifdef T9_18
         for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
@@ -12298,13 +12374,13 @@ int bitmain_reconfigure_fans(void)
         {
             char temp_name[12];
             sprintf(temp_name,"temp%d", i+1);
-            root = api_add_int16(root, temp_name, &(dev->chain_asic_maxtemp[i][TEMP_POS_LOCAL]), copy_data);
+            root = api_add_temp(root, temp_name, &chain_max_temp[i].local, copy_data);
         }
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
             char temp2_name[12];
             sprintf(temp2_name,"temp2_%d", i+1);
-            root = api_add_int16(root, temp2_name, &(dev->chain_asic_temp[i][0][TEMP_POS_MIDDLE]), copy_data);
+            root = api_add_temp(root, temp2_name, &chain_max_temp[i].remote, copy_data);
         }
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
