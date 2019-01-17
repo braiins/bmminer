@@ -49,6 +49,7 @@
 #include "elist.h"
 #include "miner.h"
 #include "fancontrol.h"
+#include "sensors.h"
 // #include "usbutils.h"
 
 #ifdef DEBUG_LOG
@@ -5760,6 +5761,103 @@ void set_frequency(void)
         else
             return ret;
     }
+
+#ifdef I2C_DEBUG
+#define i2c_log(a...) applog(LOG_NOTICE, a)
+#else
+#define i2c_log(a...)
+#endif
+
+static int i2c_tran_ok(struct i2c_dev *dev, unsigned int ret, uint8_t reg)
+{
+	uint8_t taddr = ret >> 16;
+	uint8_t treg = ret >> 8;
+
+	return taddr == dev->i2c_addr && treg == reg;
+}
+
+int i2c_read(struct i2c_dev *dev, uint8_t reg, uint8_t *data)
+{
+	int retry = 2;
+
+	i2c_log("i2c_read(%d,%02x,%02x,reg=%02x)",
+		dev->chain, dev->chip_addr, dev->i2c_addr, reg);
+	while (retry-- > 0) {
+		/* read register */
+		wait_iic_ok(dev->chip_addr, dev->chain, 0);
+		read_temp(dev->i2c_addr, reg, 0, 0, dev->chip_addr, dev->chain);
+		cgsleep_ms(1);
+
+		/* is the reply ok? */
+		unsigned int ret = wait_iic_ok(dev->chip_addr, dev->chain, 1);
+		uint8_t ret_data = ret & 0xff;
+		i2c_log("i2c_read => %08x", ret);
+		if (i2c_tran_ok(dev, ret, reg)) {
+			*data = ret_data;
+			return 0;
+		}
+
+		/* nope, another round */
+		cgsleep_ms(1);
+	}
+	i2c_log("i2c_read failed");
+	return -1;
+}
+
+/*
+ * `reg_read` is register addr from which to read data back. Most of the time
+ * these two addresses are the same but some have different address to read and
+ * to write.
+ */
+int i2c_write2(struct i2c_dev *dev, uint8_t reg, uint8_t data, uint8_t reg_read)
+{
+	int retry = 2;
+
+	i2c_log("i2c_write(%d,%02x,%02x,reg=%02x/%02x,data=%02x)",
+		dev->chain, dev->chip_addr, dev->i2c_addr,
+		reg, reg_read, data);
+	while (retry-- > 0) {
+		/* write register */
+		wait_iic_ok(dev->chip_addr, dev->chain, 0);
+		read_temp(dev->i2c_addr, reg, data, 1, dev->chip_addr, dev->chain);
+		wait_iic_ok(dev->chip_addr, dev->chain, 1);
+		cgsleep_ms(1);
+
+		/* read it back */
+		wait_iic_ok(dev->chip_addr, dev->chain, 0);
+		read_temp(dev->i2c_addr, reg_read, 0, 0, dev->chip_addr, dev->chain);
+
+		/* was reply ok and does it contain matching data? */
+		unsigned int ret = wait_iic_ok(dev->chip_addr, dev->chain, 1);
+		uint8_t ret_data = ret & 0xff;
+		if (i2c_tran_ok(dev, ret, reg_read) && ret_data == data) {
+			i2c_log("i2c_write ok");
+			return 0;
+		}
+
+		/* nope, another round */
+		cgsleep_ms(1);
+	}
+	i2c_log("i2c_write failed");
+	return -1;
+}
+
+int i2c_write(struct i2c_dev *dev, uint8_t reg, uint8_t data)
+{
+	return i2c_write2(dev, reg, data, reg);
+}
+
+void set_baud_with_addr(unsigned char bauddiv,int mode,unsigned char chip_addr,int chain,int iic,int open_core,int bottom_or_mid);
+int i2c_start_dev(struct i2c_dev *i2cdev)
+{
+	i2c_log("i2c_start(%d, %02x)",
+		i2cdev->chain, i2cdev->chip_addr);
+	/* i2cdev->bus is ignored and everything is on bus 0x20 (TEMP_MIDDLE) */
+	/* also the parameter name of i2c_dev is `i2cdev`, not `dev` because we
+	 * need access to the global variable `dev`... */
+	set_baud_with_addr(dev->baud, 0, i2cdev->chip_addr, i2cdev->chain, 1, 0, (int) TEMP_MIDDLE);
+}
+
 
 #ifdef USE_N_OFFSET_FIX_TEMP
     int8_t calc_offset(int remote, int local)
