@@ -268,6 +268,7 @@ unsigned char badcore_num_buf[BITMAIN_MAX_CHAIN_NUM][64] = {0};
 #endif
 
 int chain_badcore_num[BITMAIN_MAX_CHAIN_NUM][256] = {0};
+int chain_core_num[BITMAIN_MAX_CHAIN_NUM] = {0};
 
 unsigned char show_last_freq[BITMAIN_MAX_CHAIN_NUM][256] = {0}; // only used to showed to users
 unsigned char chip_last_freq[BITMAIN_MAX_CHAIN_NUM][256] = {0}; // this is the real value , which set freq into chips
@@ -4109,6 +4110,12 @@ void set_frequency(void)
 				}
 				orig_freq = default_freq;
 				orig_source = "cgminer default";
+			}
+
+			/* calculate number of cores */
+			chain_core_num[i] = CHAIN_ASIC_NUM * BM1387_CORE_NUM;
+			for (j = 0; j < CHAIN_ASIC_NUM; j++) {
+				chain_core_num[i] -= chain_badcore_num[i][j];
 			}
 
 			/* if frequency was requested in config, then do an override */
@@ -12679,6 +12686,15 @@ int bitmain_reconfigure_fans(void)
             char chain_name[12];
             sprintf(chain_name,"chain_acn%d",i+1);
             root = api_add_uint8(root, chain_name, &(dev->chain_asic_num[i]), copy_data);
+        }
+        for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
+        {
+            char chain_name[12];
+            if(dev->chain_exist[i] == 1)
+            {
+                sprintf(chain_name,"chain_cores%d",i+1);
+                root = api_add_int(root, chain_name, &chain_core_num[i], copy_data);
+	    }
         }
         for(i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++)
         {
