@@ -4172,6 +4172,11 @@ void set_frequency(void)
 		}
 	}
 
+	/* are there any chains at all? */
+	if (chain_id == 0) {
+		quit(1, "no enabled chains");
+	}
+
 	/* set the frequency */
 	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
 		if (dev->chain_exist[i] == 1 && dev->chain_asic_num[i] > 0) {
