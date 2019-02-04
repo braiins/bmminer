@@ -82,6 +82,7 @@ char *curly = ":D";
 #endif
 
 #include "fancontrol.h"
+#include "temp-def.h"
 
 struct strategies strategies[] =
 {
@@ -260,6 +261,8 @@ int opt_fan_ctrl = FAN_MODE_TEMP;
 int opt_fan_temp = DEFAULT_TARGET_TEMP;
 int opt_fan_speed = 100;
 int opt_fan_ctrl_set = 0;
+int opt_fan_dangerous_temp = DANGEROUS_TEMP;
+int opt_fan_hot_temp = HOT_TEMP;
 
 float opt_overclock = 0;
 int opt_overclock_set = 0;
@@ -1652,13 +1655,24 @@ static struct opt_table opt_config_table[] =
 
     OPT_WITH_ARG_DEF("--fan-temp",
     set_int_0_to_100, opt_show_intval, &opt_fan_temp,
-    "Port number of miner API",
+    "Target fan temperature (in degree celsius)",
     &opt_fan_ctrl_set),
 
     OPT_WITH_ARG_DEF("--fan-speed",
     set_int_0_to_100, opt_show_intval, &opt_fan_speed,
-    "Port number of miner API",
+    "Target fan speed (in speed percent - 0 is fan stop, 100 is fan full speed)",
     &opt_fan_ctrl_set),
+
+
+    //"Limit for what is considered a dangerous temp (in degree celsius) - at which point miner exits",
+    OPT_WITH_ARG("--fan-dangerous-temp",
+    opt_set_intval, opt_show_intval, &opt_fan_dangerous_temp,
+    opt_hidden),
+
+    //"Limit for what is considered a hot temp (in degree celsius) - at which point miner turns fans full ON",
+    OPT_WITH_ARG("--fan-hot-temp",
+    opt_set_intval, opt_show_intval, &opt_fan_hot_temp,
+    opt_hidden),
 
     OPT_WITH_ARG_DEF("--overclock",
     set_float, opt_show_floatval, &opt_overclock,

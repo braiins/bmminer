@@ -10330,7 +10330,8 @@ int bitmain_reconfigure_fans(void)
 			opt_fan_temp = MIN_TEMP;
 		if (opt_fan_temp > HOT_TEMP)
 			opt_fan_temp = HOT_TEMP;
-		applog(LOG_NOTICE, "AUTOMATIC fan control, target temperature %d degrees", opt_fan_temp);
+		applog(LOG_NOTICE, "AUTOMATIC fan control, target temperature %d degrees (hot is %d deg, dangerous is %d deg)",
+			opt_fan_temp, opt_fan_hot_temp, opt_fan_dangerous_temp);
 		fancontrol_setmode_auto(&fancontrol, opt_fan_temp);
         } else if (opt_fan_ctrl == FAN_MODE_SPEED) {
 		/* clamp values to sane range */

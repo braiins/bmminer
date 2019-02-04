@@ -137,12 +137,12 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 			dt = 1;
 		}
 		/* is temperature dangerous? (safety valve) */
-		if (temp >= DANGEROUS_TEMP) {
+		if (temp >= opt_fan_dangerous_temp) {
 			fanlog(fc, "temperature dangerous, shutting down");
 			fprintf(stderr, "\n\nTemperature DANGEROUS, Shutting Down\n\n");
 			exit(1);
 		}
-		if (temp >= HOT_TEMP) {
+		if (temp >= opt_fan_hot_temp) {
 			fanlog(fc, "temperature very hot, turning on fans");
 			fc->fan_duty = FAN_DUTY_MAX;
 			too_hot = 1;
