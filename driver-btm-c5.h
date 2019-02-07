@@ -699,7 +699,7 @@ struct all_parameters
 
     unsigned long long int total_nonce_num;
 
-    unsigned char   fan_exist[BITMAIN_MAX_FAN_NUM];
+    unsigned char   fan_exist_unused[BITMAIN_MAX_FAN_NUM];
     unsigned int    fan_speed_value[BITMAIN_MAX_FAN_NUM];
     int             temp[BITMAIN_MAX_CHAIN_NUM];
     uint8_t         chain_asic_num[BITMAIN_MAX_CHAIN_NUM];
@@ -708,7 +708,7 @@ struct all_parameters
     unsigned char   chain_num;
     unsigned char   fan_num;
     unsigned char   temp_num;
-    unsigned int    fan_speed_top1;
+    unsigned int    fan_speed_top1_unused;
     int             temp_top1[TEMP_POS_NUM];
     int             temp_low1[TEMP_POS_NUM];
     int             temp_top1_last;

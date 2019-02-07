@@ -313,6 +313,9 @@ enum fan_modes
     FAN_MODE_EMERGENCY,
 };
 
+#define DEFAULT_MIN_FANS 1
+#define WAIT_FOR_FANS_SEC 120
+
 #define TOP_STRATEGY (POOL_BALANCE)
 
 struct strategies
@@ -1009,6 +1012,7 @@ extern bool opt_delaynet;
 extern time_t last_getwork;
 extern bool opt_restart;
 
+extern int opt_min_fans;
 extern int opt_fan_temp;
 extern int opt_fan_speed;
 extern int opt_fan_ctrl;

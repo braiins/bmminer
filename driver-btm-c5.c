@@ -2977,37 +2977,76 @@ void set_Hardware_version(unsigned int value)
         }
     }
 
-    void check_fan()
-    {
-        int i=0, j=0;
-        unsigned char fan_id = 0;
-        unsigned int fan_speed;
+int check_fan(void)
+{
+	/* read out fans */
+	/* the register FAN_SPEED register gives them in sequential order, but
+	 * updates them god knows how.
+	 * the original code read all the fans twice, so I assume it might be
+	 * that the values are renewed after the whole "fan set" has been
+	 * read, so keep doing it that way.
+	 */
 
-        for(j=0; j < 2; j++)    //means check for twice to make sure find out all fan
-        {
-            for(i=0; i < BITMAIN_MAX_FAN_NUM; i++)
-            {
-                if(get_fan_speed(&fan_id, &fan_speed) != -1)
-                {
-                    dev->fan_speed_value[fan_id] = fan_speed * 60 * 2;
-                    if((fan_speed > 0) && (dev->fan_exist[fan_id] == 0))
-                    {
-                        dev->fan_exist[fan_id] = 1;
-                        dev->fan_num++;
-                        dev->fan_exist_map |= (0x1 << fan_id);
-                    }
-                    else if((fan_speed == 0) && (dev->fan_exist[fan_id] == 1))
-                    {
-                        dev->fan_exist[fan_id] = 0;
-                        dev->fan_num--;
-                        dev->fan_exist_map &= !(0x1 << fan_id);
-                    }
-                    if(dev->fan_speed_top1 < dev->fan_speed_value[fan_id])
-                        dev->fan_speed_top1 = dev->fan_speed_value[fan_id];
-                }
-            }
+	for (int i = 0; i < BITMAIN_MAX_FAN_NUM * 2; i++) {
+		unsigned char fan_id = 0;
+		unsigned int fan_speed;
+
+		if (get_fan_speed(&fan_id, &fan_speed) != -1) {
+			dev->fan_speed_value[fan_id] = fan_speed * 60 * 2;
+		}
+	}
+
+	/* now just calculate the number of working fans */
+	int working_fans = 0;
+	int fans_should_run = dev->pwm_percent > 0;
+
+	for (int i = 0; i < BITMAIN_MAX_FAN_NUM; i++) {
+		/* fan is broken when fans should be running but this one has
+		 * speed 0 */
+		/* fan is working, when it's not broken */
+		if (!(fans_should_run && dev->fan_speed_value[i] == 0))
+			working_fans++;
         }
-    }
+
+	dev->fan_num = working_fans;
+	return working_fans;
+}
+
+void check_fans_running(void)
+{
+	int working_fans = check_fan();
+	if (working_fans < opt_min_fans) {
+		applog(LOG_ERR, "not enough working fans, need %d, got %d", opt_min_fans, working_fans);
+		quit(1, "not enough fans");
+	}
+}
+
+static const char *plural(int n)
+{
+	return n != 1 ? "s" : "";
+}
+
+void wait_for_fans(void)
+{
+	if (opt_min_fans <= 0) {
+		/* no need to wait for fans if none are required */
+		return;
+	}
+	applog(LOG_NOTICE, "waiting for %d fan%s...", opt_min_fans, plural(opt_min_fans));
+	int prev = 0;
+	for (int t = 0; t < WAIT_FOR_FANS_SEC; t++) {
+		int working_fans = check_fan();
+		if (prev != working_fans) {
+			applog(LOG_NOTICE, "%d fan%s up", working_fans, plural(working_fans));
+			prev = working_fans;
+		}
+		if (working_fans >= opt_min_fans)
+			return;
+		sleep(1);
+	}
+	check_fans_running();
+}
+
 
     void set_PWM(unsigned char pwm_percent)
     {
@@ -7597,7 +7636,7 @@ read_temperature_from_sensors(float *max)
 #endif
 #endif
             // only change fan speed after read temp value!!!
-            check_fan();
+	    check_fans_running();
 
             set_PWM_according_to_temperature();
 
@@ -7619,7 +7658,7 @@ read_temperature_from_sensors(float *max)
                 cur_fan_num=MIN_FAN_NUM;
             }
 
-#ifdef DEBUG_NOT_CHECK_FAN_NUM
+#if 0
             if(cur_fan_num < MIN_FAN_NUM)
             {
                 sprintf(logstr,"DEBUG Fatal Error: FAN lost! fan num=%d\n",cur_fan_num);
@@ -10492,8 +10531,9 @@ int bitmain_reconfigure_fans(void)
             }
             cgsleep_ms(500);
 #endif
-            set_PWM(MAX_PWM_PERCENT);
         }
+        set_PWM(MAX_PWM_PERCENT);
+	wait_for_fans();
 
 #ifdef T9_18
 	// config fpga into T9+ mode
@@ -10946,6 +10986,7 @@ int bitmain_reconfigure_fans(void)
         //check who control fan
         dev->fan_eft = config_parameter.fan_eft;
         dev->fan_pwm= config_parameter.fan_pwm_percent;
+#if 0
         applog(LOG_DEBUG,"%s: fan_eft : %d  fan_pwm : %d\n", __FUNCTION__,dev->fan_eft,dev->fan_pwm);
         if(config_parameter.fan_eft)
         {
@@ -10962,6 +11003,8 @@ int bitmain_reconfigure_fans(void)
         {
             set_PWM_according_to_temperature();
         }
+#endif
+        set_PWM_according_to_temperature();
 
         //calculate real timeout
         if(config_parameter.timeout_eft)

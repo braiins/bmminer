@@ -257,6 +257,9 @@ bool fan_ctrl_type = TRUE;
 char *opt_bitmain_freq = NULL;
 char *opt_bitmain_voltage = NULL;
 
+int opt_min_fans = DEFAULT_MIN_FANS;
+int opt_min_fans_set = 0;
+
 int opt_fan_ctrl = FAN_MODE_TEMP;
 int opt_fan_temp = DEFAULT_TARGET_TEMP;
 int opt_fan_speed = 100;
@@ -1647,6 +1650,11 @@ static struct opt_table opt_config_table[] =
     OPT_WITHOUT_ARG("--benchmark",
     opt_set_bool, &opt_benchmark,
     "Run cgminer in benchmark mode - produces no shares"),
+
+    OPT_WITH_ARG_DEF("--min-fans",
+    set_int_0_to_100, opt_show_intval, &opt_min_fans,
+    "Set minimal number of fans with which miner is allowed to run",
+    &opt_min_fans_set),
 
     OPT_WITH_ARG_DEF("--fan-ctrl",
     opt_set_fan_ctrl, opt_show_fan_ctrl, &opt_fan_ctrl,
