@@ -323,6 +323,9 @@ char *opt_version_and_exit(const char *version);
 /* Display usage string to stdout, exit(0). */
 char *opt_usage_and_exit(const char *extra);
 
+/* helper function to return formatted error messages */
+char *arg_bad(const char *fmt, ...);
+
 /* Below here are private declarations. */
 /* You can use this directly to build tables, but the macros will ensure
  * consistency and type safety. */

@@ -111,10 +111,20 @@ int parse_one(int *argc, char *argv[], unsigned *offset,
 			opt_set_charp(optarg, opt_table[i].u.arg);
 		problem = opt_table[i].cb_arg(optarg, opt_table[i].u.arg);
 	}
+        if (opt_table[i].was_set != NULL) {
+		/* remember we set this option */
+		*opt_table[i].was_set = 1;
+	}
 
 	if (problem) {
 		parse_err(errlog, argv[0], o, len, problem);
-		free(problem);
+		/* although `problem` should be malloced by the callback,
+		 * it usually isn't, so we should probably avoid free-ing it.
+		 *
+		 * I tried to fix it (add arg_bad to alloc return message
+		 * everywhere), but it goes really deep and I don't have that
+		 * much time --jho */
+		/*free(problem);*/
 		return -1;
 	}
 

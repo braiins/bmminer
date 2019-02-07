@@ -3,16 +3,24 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <stdio.h>
+#include <stdarg.h>
 #include "private.h"
 
 /* Upper bound to sprintf this simple type?  Each 3 bits < 1 digit. */
 #define CHAR_SIZE(type) (((sizeof(type)*CHAR_BIT + 2) / 3) + 1)
 
-/* FIXME: asprintf module? */
-static char *arg_bad(const char *fmt, const char *arg)
+char *arg_bad(const char *fmt, ...)
 {
-	char *str = malloc(strlen(fmt) + strlen(arg));
-	sprintf(str, fmt, arg);
+	char *str = 0;
+	va_list ap;
+	int ret;
+
+	va_start(ap, fmt);
+	ret = vasprintf(&str, fmt, ap);
+	va_end(ap);
+
+	if (ret < 0)
+		str = strdup("error");
 	return str;
 }
 

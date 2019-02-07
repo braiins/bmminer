@@ -249,7 +249,5 @@ void opt_log_stderr_exit(const char *fmt, ...)
 
 char *opt_invalid_argument(const char *arg)
 {
-	char *str = malloc(sizeof("Invalid argument '%s'") + strlen(arg));
-	sprintf(str, "Invalid argument '%s'", arg);
-	return str;
+	return arg_bad("Invalid argument '%s'", arg);
 }
