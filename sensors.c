@@ -12,6 +12,9 @@
 #include "driver-btm-c5.h"
 
 #define CHIP_ID_TO_ADDR(x) (((x) - 1) * 4)
+#define I2C_SCAN_LOG_NAME "/tmp/i2c_scan.log"
+
+static FILE *i2c_scan_log;
 
 /*
  * Sensor chip implementation
@@ -187,26 +190,25 @@ probe_sensor_addr(struct sensor *sensor)
 }
 
 static void
-dump_i2c_device(struct i2c_dev *dev)
+dump_i2c_device(FILE *fw, struct i2c_dev *dev)
 {
 	uint8_t reg = 0xfe;
 
-	for (int i = 0; i < 32; i++) {
-		if (i % 8 == 0)
-			printf("%02x:", reg);
+	fprintf(fw, "chain %d: found device on chip_addr=%02x, i2c_addr=%02x\n",
+		dev->chain, dev->chip_addr, dev->i2c_addr);
 
+	fprintf(fw, "regs from %02x:", reg);
+	for (int i = 0; i < 32; i++) {
 		uint8_t data;
 		int ret;
 		ret = i2c_read(dev, reg, &data);
 		if (ret < 0)
-			printf(" XX");
+			fprintf(fw, " XX");
 		else
-			printf(" %02x", data);
+			fprintf(fw, " %02x", data);
 		reg++;
-
-		if ((i + 1) % 8 == 0)
-			printf("\n");
 	}
+	fprintf(fw, "\n");
 }
 
 static void
@@ -214,10 +216,22 @@ scan_i2c_sensors(int chain, int bus)
 {
 	struct i2c_dev dev;
 
-	applog(LOG_NOTICE, "chain %d: running i2c scan", chain);
+	/* open log file */
+	if (i2c_scan_log == NULL) {
+		i2c_scan_log = fopen(I2C_SCAN_LOG_NAME, "w");
+		if (i2c_scan_log == NULL) {
+			applog(LOG_ERR, "cannot open log file %s", I2C_SCAN_LOG_NAME);
+			return;
+		}
+	}
+
+	/* notify user this will take long */
+	applog(LOG_NOTICE, "chain %d: running i2c scan, this may take up to 30 minutes per chain", chain);
+	applog(LOG_NOTICE, "(if you don't want to do this, use --no-sensor-scan parameter)");
+
 	/* make device for this sensor */
 	for (int chip_id = CHAIN_ASIC_NUM; chip_id > 0; chip_id--) {
-		applog(LOG_NOTICE, "chain %d: scanning chip %d", chain, chip_id);
+		fprintf(i2c_scan_log, "chain %d: scanning chip %d\n", chain, chip_id);
 		for (int i2c_addr = 8*2; i2c_addr < 124*2; i2c_addr += 2) {
 			int ret;
 			uint8_t man_id;
@@ -238,8 +252,9 @@ scan_i2c_sensors(int chain, int bus)
 			applog(LOG_NOTICE, "chain %d: found device man_id=%02x on chip=%d, i2c_addr=%02x",
 				chain, man_id, chip_id, i2c_addr);
 			/* dump it */
-			dump_i2c_device(&dev);
+			dump_i2c_device(i2c_scan_log, &dev);
 		}
+		fflush(i2c_scan_log);
 	}
 }
 
@@ -293,7 +308,9 @@ probe_sensors(int chain, int bus, struct sensor *sensors, int max_sensors)
 	}
 	if (n == 0) {
 		applog(LOG_WARNING, "chain %d: no sensors found!", chain);
-		scan_i2c_sensors(chain, bus);
+		/* beware the double negative */
+		if (!opt_no_sensor_scan)
+			scan_i2c_sensors(chain, bus);
 	}
 done:
 	return n;

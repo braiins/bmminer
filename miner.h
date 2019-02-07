@@ -980,6 +980,7 @@ extern FILE * g_logwork_files[65];
 extern FILE * g_logwork_diffs[65];
 extern int g_logwork_asicnum;
 
+extern bool opt_no_sensor_scan;
 extern bool opt_work_update;
 extern bool opt_protocol;
 extern bool have_longpoll;

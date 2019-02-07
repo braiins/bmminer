@@ -145,6 +145,9 @@ static int benchfile_line;
 static int benchfile_work;
 static bool opt_benchmark;
 
+bool opt_no_sensor_scan = false;
+int opt_no_sensor_scan_set;
+
 static int opt_config_format_revision = 1;
 
 static bool work_filled;
@@ -1650,6 +1653,12 @@ static struct opt_table opt_config_table[] =
     OPT_WITHOUT_ARG("--benchmark",
     opt_set_bool, &opt_benchmark,
     "Run cgminer in benchmark mode - produces no shares"),
+
+    OPT_WITHOUT_ARG_DEF("--no-sensor-scan",
+    opt_set_bool, &opt_no_sensor_scan,
+    "Disable i2c sensor scanner",
+    &opt_no_sensor_scan_set),
+
 
     OPT_WITH_ARG_DEF("--min-fans",
     set_int_0_to_100, opt_show_intval, &opt_min_fans,
