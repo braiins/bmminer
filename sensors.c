@@ -139,6 +139,13 @@ static struct sensor_ops tmp451_chip = {
 	.read_temp = tmp451_read_temp_nofrac,
 };
 
+static struct sensor_ops adt7461_chip = {
+	.name = "ADT7461",
+	.manufacturer_id = 0x41,
+	.init = tmp451_init,
+	.read_temp = tmp451_read_temp_nofrac,
+};
+
 
 static struct sensor_ops nct218_chip = {
 	.name = "NCT218",
@@ -174,6 +181,10 @@ probe_sensor_addr(struct sensor *sensor)
 	if (man_id == 0x55) {
 		/* TMP451 */
 		sensor->ops = &tmp451_chip;
+		return 0;
+	} else if (man_id == 0x41) {
+		/* ADT7461 */
+		sensor->ops = &adt7461_chip;
 		return 0;
 	} else if (man_id == 0x1a) {
 		/* NCT218 */
