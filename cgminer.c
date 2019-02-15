@@ -269,6 +269,8 @@ int opt_fan_speed = 100;
 int opt_fan_ctrl_set = 0;
 int opt_fan_dangerous_temp = DANGEROUS_TEMP;
 int opt_fan_hot_temp = HOT_TEMP;
+int opt_fan_dangerous_temp_set = 0;
+int opt_fan_hot_temp_set = 0;
 
 float opt_overclock = 0;
 int opt_overclock_set = 0;
@@ -1681,15 +1683,15 @@ static struct opt_table opt_config_table[] =
     &opt_fan_ctrl_set),
 
 
-    //"Limit for what is considered a dangerous temp (in degree celsius) - at which point miner exits",
-    OPT_WITH_ARG("--fan-dangerous-temp",
+    OPT_WITH_ARG_DEF("--fan-dangerous-temp",
     opt_set_intval, opt_show_intval, &opt_fan_dangerous_temp,
-    opt_hidden),
+    "Limit for what is considered a dangerous temp (in degree celsius) - at which point miner exits",
+    &opt_fan_dangerous_temp_set),
 
-    //"Limit for what is considered a hot temp (in degree celsius) - at which point miner turns fans full ON",
-    OPT_WITH_ARG("--fan-hot-temp",
+    OPT_WITH_ARG_DEF("--fan-hot-temp",
     opt_set_intval, opt_show_intval, &opt_fan_hot_temp,
-    opt_hidden),
+    "Limit for what is considered a hot temp (in degree celsius) - at which point miner turns fans full ON",
+    &opt_fan_hot_temp_set),
 
     OPT_WITH_ARG_DEF("--overclock",
     set_float, opt_show_floatval, &opt_overclock,
