@@ -855,7 +855,7 @@ static bool _valid_hex(char *s, const char *file, const char *func, const int li
 
     if (unlikely(!s))
     {
-        applog(LOG_ERR, "Null string passed to valid_hex from", IN_FMT_FFL, file, func, line);
+        applog(LOG_ERR, "Null string passed to valid_hex from");
         return ret;
     }
     len = strlen(s);
@@ -866,7 +866,7 @@ static bool _valid_hex(char *s, const char *file, const char *func, const int li
 
         if (unlikely(hex2bin_tbl[idx] < 0))
         {
-            applog(LOG_ERR, "Invalid char 0x%x passed to valid_hex from", IN_FMT_FFL, idx, file, func, line);
+            applog(LOG_ERR, "Invalid char 0x%x passed to valid_hex from", idx);
             return ret;
         }
     }
@@ -884,7 +884,7 @@ static bool _valid_ascii(char *s, const char *file, const char *func, const int 
 
     if (unlikely(!s))
     {
-        applog(LOG_ERR, "Null string passed to valid_ascii from", IN_FMT_FFL, file, func, line);
+        applog(LOG_ERR, "Null string passed to valid_ascii from");
         return ret;
     }
 
@@ -892,7 +892,7 @@ static bool _valid_ascii(char *s, const char *file, const char *func, const int 
 
     if (unlikely(!len))
     {
-        applog(LOG_ERR, "Zero length string passed to valid_ascii from", IN_FMT_FFL, file, func, line);
+        applog(LOG_ERR, "Zero length string passed to valid_ascii from");
         return ret;
     }
 
@@ -902,7 +902,7 @@ static bool _valid_ascii(char *s, const char *file, const char *func, const int 
 
         if (unlikely(idx < 32 || idx > 126))
         {
-            applog(LOG_ERR, "Invalid char 0x%x passed to valid_ascii from", IN_FMT_FFL, idx, file, func, line);
+            applog(LOG_ERR, "Invalid char 0x%x passed to valid_ascii from", idx);
             return ret;
         }
     }
@@ -1920,7 +1920,7 @@ static char *json_array_string(json_t *val, unsigned int entry)
 static char *blank_merkle = "0000000000000000000000000000000000000000000000000000000000000000";
 
 #define VERSION_BITS_NUM 2
-#define VERSION_BITS_THAT_S9_ROLLS 0x00c00000
+#define VERSION_BITS_THAT_S9_ROLLS 0x00c00000ul
 #if MIDSTATE_NUM != (1UL << VERSION_BITS_NUM)
 #error Incompatible number of midstates and version bits to roll!
 #endif
@@ -2084,7 +2084,7 @@ out:
     return ret;
 }
 
-static bool parse_version(struct pool *pool, json_t *val)
+static void parse_version(struct pool *pool, json_t *val)
 {
     int i;
     for(i = 0; i < json_array_size(val); i++)
@@ -3932,7 +3932,7 @@ void cg_logwork(struct work *work, unsigned char *nonce_bin, bool ok)
         sznonce5 = bin2hex((void *)nonce_bin, (size_t)5);
         szhash = bin2hex((void *)hash_tmp, (size_t)32);
         worksharediff = share_ndiff(work);
-        sprintf(szmsg, "%s %08x midstate %s data %s nonce %s hash %s diff %I64d", ok?"o":"x", work->id, szmidstate, szdata, sznonce5, szhash, worksharediff);
+        sprintf(szmsg, "%s %08x midstate %s data %s nonce %s hash %s diff %lld", ok?"o":"x", work->id, szmidstate, szdata, sznonce5, szhash, worksharediff);
         if(strcmp(opt_logwork_path, "screen") == 0)
         {
             applog(LOG_ERR, szmsg);
@@ -3942,7 +3942,7 @@ void cg_logwork(struct work *work, unsigned char *nonce_bin, bool ok)
             applog(LOG_ERR, szmsg);
             if(g_logwork_file)
             {
-                sprintf(szmsg, "%s %08x work %s midstate %s data %s nonce %s hash %s diff %I64d", ok?"o":"x", work->id, szworkdata, szmidstate, szdata, sznonce5, szhash, worksharediff);
+                sprintf(szmsg, "%s %08x work %s midstate %s data %s nonce %s hash %s diff %lld", ok?"o":"x", work->id, szworkdata, szmidstate, szdata, sznonce5, szhash, worksharediff);
 
                 fwrite(szmsg, strlen(szmsg), 1, g_logwork_file);
                 fwrite("\n", 1, 1, g_logwork_file);
@@ -3986,7 +3986,7 @@ void cg_logwork(struct work *work, unsigned char *nonce_bin, bool ok)
                                 break;
                             }
                         }
-                        applog(LOG_DEBUG, "work diff %I64d diffnum %d", worksharediff, diffnum);
+                        applog(LOG_DEBUG, "work diff %lld diffnum %d", worksharediff, diffnum);
                         sprintf(szmsg, "midstate %s data %s nonce %s hash %s", szmidstate, szdata, sznonce4, szhash);
                         fwrite(szmsg, strlen(szmsg), 1, g_logwork_diffs[diffnum]);
                         fwrite("\n", 1, 1, g_logwork_diffs[diffnum]);

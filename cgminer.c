@@ -7209,7 +7209,7 @@ static void hashmeter(int thr_id, uint64_t hashes_done)
 
     if(total_secs - last_total_secs > 86400)
     {
-        applog(LOG_ERR, "cgminer time error total_secs = %d last_total_secs = %d", total_secs, last_total_secs);
+        applog(LOG_ERR, "cgminer time error total_secs = %lf last_total_secs = %lf", total_secs, last_total_secs);
         mutex_unlock(&hash_lock);
         zero_stats();
         mutex_lock(&hash_lock);
@@ -8692,7 +8692,7 @@ struct work *get_work(struct thr_info *thr, const int thr_id)
      * device failures. */
     if (diff_t > 0)
     {
-        applog(LOG_DEBUG, "Get work blocked for %d seconds", (time_t)diff_t);
+        applog(LOG_DEBUG, "Get work blocked for %ld seconds", (time_t)diff_t);
         cgpu->last_device_valid_work += diff_t;
     }
 
@@ -9044,7 +9044,7 @@ void cg_savelogwork_uint32(struct work *work, uint32_t nonce)
 /* Returns true if nonce for work was a valid share and not a dupe of the very last
  * nonce submitted by this device. */
 
-bool savelog_nonce(struct work *work, uint32_t nonce)
+void savelog_nonce(struct work *work, uint32_t nonce)
 {
     if (test_nonce(work, nonce))
         cg_savelogwork_uint32(work, nonce);
@@ -11525,7 +11525,7 @@ void setStartTimePoint()
         total_tv_start_sys=sInfo.uptime;
         total_tv_end_sys=total_tv_start_sys+1;
 
-        sprintf(logstr, "setStartTimePoint total_tv_start_sys=%d total_tv_end_sys=%d\n",total_tv_start_sys, total_tv_end_sys);
+        sprintf(logstr, "setStartTimePoint total_tv_start_sys=%ld total_tv_end_sys=%ld\n",total_tv_start_sys, total_tv_end_sys);
         writeInitLogFile(logstr);
     }
 }

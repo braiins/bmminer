@@ -42,6 +42,7 @@
 #include <arpa/inet.h>
 #include <errno.h>
 #include <string.h>
+#include <zlib.h>
 	 
 #include "elist.h"
 #include "miner.h"
@@ -81,6 +82,11 @@ extern int get_buffer_space(void);
 extern int get_freqvalue_by_index(int index);
 extern int getChainAsicFreqIndex(int chainIndex, int asicIndex);
 extern int get_hash_on_plug(void);
+int getChainExistFlag(int chainIndex);
+unsigned char get_pic_voltage(unsigned char chain);
+unsigned char getPICvoltageFromValue(int vol_value);
+void set_pic_voltage(unsigned char chain, unsigned char voltage);
+int getChainAsicNum(int chainIndex);
 
 
 ////////// below is only used inside of this file !!! so all static!/////////////

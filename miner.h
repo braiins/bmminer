@@ -1610,7 +1610,7 @@ extern struct api_data *api_add_timeval(struct api_data *root, char *name, struc
 extern struct api_data *api_add_utility(struct api_data *root, char *name, double *data, bool copy_data);
 extern struct api_data *api_add_uint(struct api_data *root, char *name, unsigned int *data, bool copy_data);
 extern struct api_data *api_add_uint8(struct api_data *root, char *name, uint8_t *data, bool copy_data);
-extern struct api_data *api_add_int16(struct api_data *root, char *name, uint16_t *data, bool copy_data);
+extern struct api_data *api_add_int16(struct api_data *root, char *name, int16_t *data, bool copy_data);
 extern struct api_data *api_add_uint16(struct api_data *root, char *name, uint16_t *data, bool copy_data);
 extern struct api_data *api_add_uint32(struct api_data *root, char *name, uint32_t *data, bool copy_data);
 extern struct api_data *api_add_uint64(struct api_data *root, char *name, uint64_t *data, bool copy_data);

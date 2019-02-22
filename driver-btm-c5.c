@@ -68,10 +68,14 @@ bool isUseDefaultFreq=false;
 bool doTestPatten=false;
 bool startCheckNetworkJob=false;
 
-unsigned char reset_iic_pic(unsigned char chain);
+void reset_iic_pic(unsigned char chain);
 
 extern  bool clement_doTestBoard(bool showlog);
 bool clement_doTestBoardOnce(bool showlog);
+int calculate_core_number(unsigned int actual_core_number);
+int readRebootTestNum();
+int send_job(unsigned char *buf);
+void get_work_by_nonce2(struct thr_info *thr, struct work **work, struct pool *pool, struct pool *real_pool, uint64_t nonce2, uint32_t ntime, uint32_t version);
 
 #define hex_print(p) applog(LOG_DEBUG, "%s", p)
 
@@ -297,11 +301,11 @@ volatile struct reg_buf reg_value_buf;
 #define USE_IIC 1
 #define TEMP_CALI 0
 
-static int8_t bottom_Offset[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
-static int8_t middle_Offset[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
+static int8_t bottom_Offset[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {};
+static int8_t middle_Offset[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {};
 
-static int8_t bottom_Offset_sw[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
-static int8_t middle_Offset_sw[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {0x0,0x0,0x0,0x0,0x0,0x0,0x0,0x0};
+static int8_t bottom_Offset_sw[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {};
+static int8_t middle_Offset_sw[BITMAIN_MAX_CHAIN_NUM][MAX_TEMPCHIP_NUM] = {};
 
 pthread_mutex_t init_log_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -930,7 +934,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
 
     }
 
-    unsigned char erase_pic_flash_all(unsigned char chain)
+    void erase_pic_flash_all(unsigned char chain)
     {
         unsigned int i=0, erase_loop = 0;
         unsigned char start_addr_h = PIC_FLASH_POINTER_START_ADDRESS_H, start_addr_l = PIC_FLASH_POINTER_START_ADDRESS_L;
@@ -1255,7 +1259,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         }
     }
 #else
-    unsigned char jump_to_app_from_loader(unsigned char chain)
+    void jump_to_app_from_loader(unsigned char chain)
     {
         unsigned char ret=0xff;
 
@@ -1264,7 +1268,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         cgsleep_us(100000);
     }
 
-    unsigned char reset_iic_pic(unsigned char chain)
+    void reset_iic_pic(unsigned char chain)
     {
         unsigned char ret=0xff;
 
@@ -2410,10 +2414,10 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         axi_fpga_addr = mmap(NULL, TOTAL_LEN, PROT_READ|PROT_WRITE, MAP_SHARED, fd_mem, AXI_FPGA_BASE_ADDRESS_XILINX);
         if(!axi_fpga_addr)
         {
-            applog(LOG_DEBUG,"mmap axi_fpga_addr failed. axi_fpga_addr = 0x%x\n", axi_fpga_addr);
+            applog(LOG_DEBUG,"mmap axi_fpga_addr failed. axi_fpga_addr = %p\n", axi_fpga_addr);
             return -1;
         }
-        applog(LOG_DEBUG,"mmap axi_fpga_addr = 0x%x\n", axi_fpga_addr);
+        applog(LOG_DEBUG,"mmap axi_fpga_addr = %p\n", axi_fpga_addr);
 
         //check the value in address 0xff200000
         data = *axi_fpga_addr;
@@ -2427,17 +2431,17 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         fpga_mem_addr = mmap(NULL, FPGA_MEM_TOTAL_LEN, PROT_READ|PROT_WRITE, MAP_SHARED, fd_mem, PHY_MEM_NONCE2_JOBID_ADDRESS);
         if(!fpga_mem_addr)
         {
-            applog(LOG_DEBUG,"mmap fpga_mem_addr failed. fpga_mem_addr = 0x%x\n", fpga_mem_addr);
+            applog(LOG_DEBUG,"mmap fpga_mem_addr failed. fpga_mem_addr = %p\n", fpga_mem_addr);
             return -1;
         }
-        applog(LOG_DEBUG,"mmap fpga_mem_addr = 0x%x\n", fpga_mem_addr);
+        applog(LOG_DEBUG,"mmap fpga_mem_addr = %p\n", fpga_mem_addr);
 
         nonce2_jobid_address = fpga_mem_addr;
         job_start_address_1  = fpga_mem_addr + NONCE2_AND_JOBID_STORE_SPACE/sizeof(int);
         job_start_address_2  = fpga_mem_addr + (NONCE2_AND_JOBID_STORE_SPACE + JOB_STORE_SPACE)/sizeof(int);
 
-        applog(LOG_DEBUG,"job_start_address_1 = 0x%x\n", job_start_address_1);
-        applog(LOG_DEBUG,"job_start_address_2 = 0x%x\n", job_start_address_2);
+        applog(LOG_DEBUG,"job_start_address_1 = %p\n", job_start_address_1);
+        applog(LOG_DEBUG,"job_start_address_2 = %p\n", job_start_address_2);
 
         set_nonce2_and_job_id_store_address(PHY_MEM_NONCE2_JOBID_ADDRESS);
         set_job_start_address(PHY_MEM_JOB_START_ADDRESS_1);
@@ -2481,7 +2485,7 @@ void set_pic_iic_flash_addr_pointer(unsigned char chain, unsigned char addr_H, u
         return ret;
     }
 
-    int bitmain_axi_close()
+    void bitmain_axi_close()
     {
         int ret = 0;
 
@@ -2958,7 +2962,7 @@ void set_Hardware_version(unsigned int value)
 
         if(ret < 0)
         {
-            applog(LOG_DEBUG,"%s: get_hash_on_plug functions error\n");
+            applog(LOG_DEBUG,"%s: get_hash_on_plug functions error\n", __FUNCTION__);
         }
         else
         {
@@ -3824,7 +3828,7 @@ void wait_for_fans(void)
 
         if(max_freq_chipIndex<0)
         {
-            sprintf(logstr,"Fatal Error: DownOneChipFreqOneStep Chain[%d] has Wrong chip index=%d\n",max_freq_chipIndex);
+            sprintf(logstr,"Fatal Error: DownOneChipFreqOneStep Chain[%d] has Wrong chip index=%d\n",j,max_freq_chipIndex);
             writeInitLogFile(logstr);
             return false;
         }
@@ -3832,7 +3836,7 @@ void wait_for_fans(void)
         //down one step on highest chip, but freq must be > 250M
         if(max_freq<=MIN_FREQ)
         {
-            sprintf(logstr,"Fatal Error: DownOneChipFreqOneStep Chain[%d] has no chip can down freq!!!\n",max_rate_chainIndex);
+            sprintf(logstr,"Fatal Error: DownOneChipFreqOneStep Chain[%d] has no chip can down freq!!!\n",j);
             writeInitLogFile(logstr);
             return false;
         }
@@ -4183,7 +4187,7 @@ void set_frequency(void)
 			} else {
 				if (opt_overclock != 0) {
 					applog(LOG_NOTICE, "chain %d: overclocking whole chain by factor %.3f",
-						opt_overclock);
+						i, opt_overclock);
 
 					/* overclock indexes directly */
 					overclock_freq_index(&base_freq_index[i], opt_overclock);
@@ -5389,7 +5393,7 @@ void set_frequency(void)
                                 int ii;
                                 char displayed_rate_asic[32];
                                 uint64_t temp_hash_rate = 0;
-                                uint8_t rate_buf[10];
+                                char rate_buf[10];
                                 uint8_t displayed_rate[16];
 
                                 read_num ++;
@@ -5624,7 +5628,7 @@ void set_frequency(void)
                             {
                                 int i;
                                 uint64_t temp_hash_rate = 0;
-                                uint8_t rate_buf[10];
+                                char rate_buf[10];
                                 uint8_t displayed_rate[16];
                                 for(i = 0; i < 4; i++)
                                 {
@@ -5916,6 +5920,8 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
 	/* also the parameter name of i2c_dev is `i2cdev`, not `dev` because we
 	 * need access to the global variable `dev`... */
 	set_baud_with_addr(dev->baud, 0, i2cdev->chip_addr, i2cdev->chain, 1, 0, (int) TEMP_MIDDLE);
+
+	return 0;
 }
 
 
@@ -5974,7 +5980,7 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
         ret = check_reg_temp(device, 0x1, 0x0, 0, chip_addr, chain); // Read Remote Temp
 
 #ifdef EXTEND_TEMP_MODE
-        middle = ret & 0xff - 64;
+        middle = (ret & 0xff) - 64;
 #else
         middle = ret & 0xff;
 #endif
@@ -6161,7 +6167,7 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
 #endif
 
 #ifndef TWO_CHIP_TEMP_S9
-        get_temperature_offset_value(chain,temp_offset);
+        get_temperature_offset_value(chain,(unsigned char *)temp_offset);
         sprintf(logstr,"Chain[J%d] PIC temp offset=%d,%d,%d,%d,%d,%d,%d,%d\n",chain+1,temp_offset[0],temp_offset[1],temp_offset[2],temp_offset[3],temp_offset[4],temp_offset[5],temp_offset[6],temp_offset[7]);
         writeInitLogFile(logstr);
 
@@ -6611,7 +6617,7 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
 #endif
 
         if(opt_multi_version)
-            set_dhash_acc_control(get_dhash_acc_control() & (~OPERATION_MODE) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version) & (~NEW_BLOCK) & (~RUN_BIT));
+            set_dhash_acc_control((get_dhash_acc_control() & (~OPERATION_MODE)) | VIL_MODE | (VIL_MIDSTATE_NUMBER(opt_multi_version) & (~NEW_BLOCK) & (~RUN_BIT)));
         cgsleep_ms(10);
 
         //set core number
@@ -8785,7 +8791,7 @@ read_temperature_from_sensors(float *max)
                         {
                             nonce_num[i][j][nonce_times % TIMESLICE] = dev->chain_asic_nonce[i][j];
                             avg_num += dev->chain_asic_nonce[i][j];
-                            applog(LOG_DEBUG,"%s: chain %d asic %d asic_nonce_num %d", __FUNCTION__, i,j,dev->chain_asic_nonce[i][j]);
+                            applog(LOG_DEBUG,"%s: chain %d asic %d asic_nonce_num %llu", __FUNCTION__, i,j,dev->chain_asic_nonce[i][j]);
                         }
                     }
                 }
@@ -8974,7 +8980,7 @@ read_temperature_from_sensors(float *max)
         }
         else    // vil mode
         {
-            set_dhash_acc_control(get_dhash_acc_control() & (~OPERATION_MODE) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version));
+            set_dhash_acc_control((get_dhash_acc_control() & (~OPERATION_MODE)) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version));
             set_hash_counting_number(0);
             // prepare gateblk
             buf_vil[0] = VIL_COMMAND_TYPE | VIL_ALL | SET_CONFIG;
@@ -9203,7 +9209,7 @@ read_temperature_from_sensors(float *max)
         }
         else    // vil mode
         {
-            set_dhash_acc_control(get_dhash_acc_control() & (~OPERATION_MODE) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version));
+            set_dhash_acc_control((get_dhash_acc_control() & (~OPERATION_MODE)) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version));
             set_hash_counting_number(0);
             // prepare gateblk
             buf_vil[0] = VIL_COMMAND_TYPE | VIL_ALL | SET_CONFIG;
@@ -9428,7 +9434,7 @@ read_temperature_from_sensors(float *max)
         }
         else    // vil mode
         {
-            set_dhash_acc_control(get_dhash_acc_control() & (~OPERATION_MODE) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version));
+            set_dhash_acc_control((get_dhash_acc_control() & (~OPERATION_MODE)) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version));
             set_hash_counting_number(0);
             // prepare gateblk
             buf_vil[0] = VIL_COMMAND_TYPE | VIL_ALL | SET_CONFIG;
@@ -9988,7 +9994,7 @@ read_temperature_from_sensors(float *max)
 #endif
 
         if(opt_multi_version)
-            set_dhash_acc_control(get_dhash_acc_control() & (~OPERATION_MODE) | VIL_MODE | VIL_MIDSTATE_NUMBER(opt_multi_version) & (~NEW_BLOCK) & (~RUN_BIT));
+            set_dhash_acc_control((get_dhash_acc_control() & (~OPERATION_MODE)) | VIL_MODE | (VIL_MIDSTATE_NUMBER(opt_multi_version) & (~NEW_BLOCK) & (~RUN_BIT)));
         cgsleep_ms(10);
 
         //set core number
@@ -10360,7 +10366,7 @@ read_temperature_from_sensors(float *max)
         system("cp /tmp/lasttemp /tmp/err3.log -f");
     }
 
-int bitmain_reconfigure_fans(void)
+void bitmain_reconfigure_fans(void)
 {
 	mutex_lock(&fancontrol_lock);
 	if (opt_fan_ctrl == FAN_MODE_TEMP) {
@@ -10857,7 +10863,7 @@ int bitmain_reconfigure_fans(void)
 #endif
 
         if(opt_multi_version)
-            set_dhash_acc_control(get_dhash_acc_control() & (~OPERATION_MODE) & (~ VIL_MIDSTATE_NUMBER(0xf)) | VIL_MIDSTATE_NUMBER(1) | VIL_MODE  & (~NEW_BLOCK) & (~RUN_BIT));
+            set_dhash_acc_control((get_dhash_acc_control() & (~OPERATION_MODE) & (~ VIL_MIDSTATE_NUMBER(0xf))) | VIL_MIDSTATE_NUMBER(1) | (VIL_MODE  & (~NEW_BLOCK) & (~RUN_BIT)));
         cgsleep_ms(10);
 
         //set core number
@@ -11045,8 +11051,8 @@ int bitmain_reconfigure_fans(void)
             }
         }
 
-        for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
-            for (j = 0; j < chain_n_sensors[i]; j++) {
+        for (int i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+            for (int j = 0; j < chain_n_sensors[i]; j++) {
                 sensor_init(&chain_sensor[i][j]);
             }
         }
@@ -11638,7 +11644,7 @@ int bitmain_reconfigure_fans(void)
         char * buf_hex = NULL;
         int i = 0;
         buf_hex = bin2hex(pool->coinbase,pool->coinbase_len);
-        printf("%s: nonce2 0x%x\n", __FUNCTION__, nonce2);
+        printf("%s: nonce2 0x%llx\n", __FUNCTION__, nonce2);
         printf("%s: coinbase : %s\n", __FUNCTION__, buf_hex);
         free(buf_hex);
         for(i=0; i<pool->merkles; i++)
@@ -11705,7 +11711,7 @@ int bitmain_reconfigure_fans(void)
         }
         else
         {
-            applog(LOG_DEBUG,"%s: dev->current_job_start_address = 0x%x, but job_start_address_1 = 0x%x, job_start_address_2 = 0x%x\n", __FUNCTION__, dev->current_job_start_address, job_start_address_1, job_start_address_2);
+            applog(LOG_DEBUG,"%s: dev->current_job_start_address = %p, but job_start_address_1 = %p, job_start_address_2 = %p\n", __FUNCTION__, dev->current_job_start_address, job_start_address_1, job_start_address_2);
             return -3;
         }
 
@@ -11865,20 +11871,20 @@ int bitmain_reconfigure_fans(void)
             if(!opt_multi_version)
             {
                 set_dhash_acc_control((unsigned int)get_dhash_acc_control() | NEW_BLOCK );
-                set_dhash_acc_control((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf)) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT | OPERATION_MODE);
+                set_dhash_acc_control(((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf))) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT | OPERATION_MODE);
             }
             else
             {
                 set_dhash_acc_control((unsigned int)get_dhash_acc_control() | NEW_BLOCK );
-                set_dhash_acc_control((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf)) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT | OPERATION_MODE |VIL_MODE);
+                set_dhash_acc_control(((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf))) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT | OPERATION_MODE |VIL_MODE);
             }
         }
         else
         {
             if(!opt_multi_version)
-                set_dhash_acc_control((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf)) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT| OPERATION_MODE );
+                set_dhash_acc_control(((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf))) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT| OPERATION_MODE );
             else
-                set_dhash_acc_control((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf)) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT| OPERATION_MODE |VIL_MODE);
+                set_dhash_acc_control(((unsigned int)get_dhash_acc_control() & (~ VIL_MIDSTATE_NUMBER(0xf))) | VIL_MIDSTATE_NUMBER(opt_multi_version)| RUN_BIT| OPERATION_MODE |VIL_MODE);
         }
 #endif
 
@@ -12070,7 +12076,7 @@ int bitmain_reconfigure_fans(void)
                 pool_diff_bit++;
             }
             pool_diff_bit--;
-            applog(LOG_DEBUG,"%s: pool_diff:%d work_diff:%d pool_diff_bit:%d ...\n", __FUNCTION__,pool_diff,work->sdiff,pool_diff_bit);
+            applog(LOG_DEBUG,"%s: pool_diff:%lld work_diff:%lf pool_diff_bit:%lld ...\n", __FUNCTION__,pool_diff,work->sdiff,pool_diff_bit);
         }
 
         if(net_diff != (uint64_t)current_diff)
@@ -12084,7 +12090,7 @@ int bitmain_reconfigure_fans(void)
                 net_diff_bit++;
             }
             net_diff_bit--;
-            applog(LOG_DEBUG,"%s:net_diff:%d current_diff:%d net_diff_bit %d ...\n", __FUNCTION__,net_diff,current_diff,net_diff_bit);
+            applog(LOG_DEBUG,"%s:net_diff:%lld current_diff:%lf net_diff_bit %lld ...\n", __FUNCTION__,net_diff,current_diff,net_diff_bit);
         }
 
         uint32_t *hash2_32 = (uint32_t *)hash1;
@@ -12273,7 +12279,12 @@ int bitmain_reconfigure_fans(void)
                     continue;
             }
             c_pool = pools[pool->pool_no];
+#if 0
             get_work_by_nonce2(thr,&work,pool,c_pool,nonce2,pool->ntime,version);
+#else
+	    /* ntime doesn't get used by get_work_by_nonce2 function */
+            get_work_by_nonce2(thr,&work,pool,c_pool,nonce2,0,version);
+#endif
             h += hashtest_submit(thr,work,nonce3,midstate,pool,nonce2,chain_id);
             free_work(work);
         }
@@ -12282,9 +12293,11 @@ int bitmain_reconfigure_fans(void)
         cgsleep_ms(1);
         if(h != 0)
         {
-            applog(LOG_DEBUG,"%s: hashes %u ...\n", __FUNCTION__,h * 0xffffffffull);
+            applog(LOG_DEBUG,"%s: hashes %llu ...\n", __FUNCTION__,h * 0xffffffffull);
         }
         h = h * 0xffffffffull;
+
+	return NULL;
     }
 
     static int64_t bitmain_c5_scanhash(struct thr_info *thr)

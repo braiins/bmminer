@@ -202,4 +202,7 @@ extern struct timed_avg w_rolling1m, w_rolling15m, w_rolling24h;
 
 int parse_list(char *s, char **argv, int max_argc, char sep);
 
+bool subscribe_extranonce(struct pool *pool);
+void rev(unsigned char *s, size_t l);
+
 #endif /* __UTIL_H__ */

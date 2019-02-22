@@ -92,7 +92,7 @@ HDREXTS = .h .H .hh .hpp .HPP .h++ .hxx .hp
 
 # The pre-processor and compiler options.
 # Users can override those variables from the command line.
-CFLAGS  = 
+CFLAGS  =  -Wall -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable
 # CXXFLAGS= -std=c++0x
 CXXFLAGS=
 CROSS_PREFIX=

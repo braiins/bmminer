@@ -1052,7 +1052,7 @@ struct api_data *api_add_uint8(struct api_data *root, char *name, uint8_t *data,
     return api_add_data_full(root, name, API_UINT8, (void *)data, copy_data);
 }
 
-struct api_data *api_add_int16(struct api_data *root, char *name, uint16_t *data, bool copy_data)
+struct api_data *api_add_int16(struct api_data *root, char *name, int16_t *data, bool copy_data)
 {
     return api_add_data_full(root, name, API_INT16, (void *)data, copy_data);
 }
@@ -2347,11 +2347,13 @@ static struct api_data *bitmain_api_chainstatus(struct cgpu_info *cgpu, struct i
 		/* Maximal MHS takes into account number of enabled cores */
 		root = api_add_mhs(root, "maximal MHS", &dev_sum_freq, copy_data);
 	}
-	root = api_add_int(root, "Accepted", &g_accepted[i], copy_data);
-	root = api_add_int(root, "Rejected", &g_rejected[i], copy_data);
-	root = api_add_int(root, "Hardware Errors", &(dev->chain_hw[i]), copy_data);
+	root = api_add_uint(root, "Accepted", &g_accepted[i], copy_data);
+	root = api_add_uint(root, "Rejected", &g_rejected[i], copy_data);
+	root = api_add_uint(root, "Hardware Errors", &(dev->chain_hw[i]), copy_data);
 
 	root = print_data(io_data, root, isjson, devid > 0);
+
+	return 0;
 }
 
 static struct api_data *bitmain_api_devstatus(struct cgpu_info *cgpu, struct io_data *io_data, bool isjson, bool precom)
@@ -2364,6 +2366,7 @@ static struct api_data *bitmain_api_devstatus(struct cgpu_info *cgpu, struct io_
 			devcount++;
 		}
 	}
+	return NULL;
 }
 
 static void devstatus(struct io_data *io_data, __maybe_unused SOCKETTYPE c, __maybe_unused char *param, bool isjson, __maybe_unused char group)
