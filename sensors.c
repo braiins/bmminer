@@ -17,6 +17,17 @@
 static FILE *i2c_scan_log;
 
 /*
+ * Fake chip temperature from PCB temperature - the difference is about 15
+ * degrees and the temperature takes longer to propagate, so the PID
+ * controller oscillates a bit.
+ */
+static float
+local_to_remote(float int_temp)
+{
+	return int_temp + 15;
+}
+
+/*
  * Sensor chip implementation
  */
 
@@ -74,43 +85,42 @@ tmp451_read_temp(struct sensor *sensor, struct temp *temp)
 	if (ret < 0)
 		return ret;
 
-	ret = i2c_read(&sensor->dev, TMP451_REG_R_REMOTE_FRAC, &remote_fract);
-	if (ret < 0)
-		return ret;
+	local_fract = 0;
+	remote_fract = 0;
 
-	ret = i2c_read(&sensor->dev, TMP451_REG_R_LOCAL_FRAC, &local_fract);
-	if (ret < 0)
-		return ret;
+	/* if this sensor provides meaningful fractional part, read it */
+	if (sensor->ops->has_fract) {
+		ret = i2c_read(&sensor->dev, TMP451_REG_R_REMOTE_FRAC, &remote_fract);
+		if (ret < 0)
+			return ret;
+
+		ret = i2c_read(&sensor->dev, TMP451_REG_R_LOCAL_FRAC, &local_fract);
+		if (ret < 0)
+			return ret;
+	}
 
 	/* put temperatures together */
 	temp->local = tmp451_make_temp(local, local_fract);
-	temp->remote = tmp451_make_temp(remote, remote_fract);
+
+	/* broken-off remote sensor? */
+	if (remote == 0) {
+		/* from tmp451 documentation:
+		 *
+		 * SENSOR FAULT
+		 *
+		 * The TMP451 can sense a fault at the D+ input resulting from
+		 * incorrect diode connection. The TMP451 can also sense an
+		 * open circuit. Short-circuit conditions return a value
+		 * of –64°C.
+		 */
+		applog(LOG_NOTICE, "chain %d has no remote temperature, fixing", sensor->dev.chain);
+		temp->remote = local_to_remote(temp->local);
+	} else {
+		temp->remote = tmp451_make_temp(remote, remote_fract);
+	}
 
 	return 0;
 }
-
-static int
-tmp451_read_temp_nofrac(struct sensor *sensor, struct temp *temp)
-{
-	int ret;
-	uint8_t local, remote;
-
-	/* read temperature registers */
-	ret = i2c_read(&sensor->dev, TMP451_REG_R_LOCAL_T, &local);
-	if (ret < 0)
-		return ret;
-
-	ret = i2c_read(&sensor->dev, TMP451_REG_R_REMOTE_T, &remote);
-	if (ret < 0)
-		return ret;
-
-	/* put temperatures together */
-	temp->local = tmp451_make_temp(local, 0);
-	temp->remote = tmp451_make_temp(remote, 0);
-
-	return 0;
-}
-
 
 static int
 nct218_read_temp(struct sensor *sensor, struct temp *temp)
@@ -126,8 +136,8 @@ nct218_read_temp(struct sensor *sensor, struct temp *temp)
 	/* put temperatures together */
 	temp->local = tmp451_make_temp(local, 0);
 
-	/* fake remote temperature - chip is about 15 degrees hotter than pcb*/
-	temp->remote = temp->local + 15;
+	/* fake remote temperature */
+	temp->remote = local_to_remote(temp->local);
 
 	return 0;
 }
@@ -136,14 +146,16 @@ static struct sensor_ops tmp451_chip = {
 	.name = "TMP451",
 	.manufacturer_id = 0x55,
 	.init = tmp451_init,
-	.read_temp = tmp451_read_temp_nofrac,
+	.read_temp = tmp451_read_temp,
+	.has_fract = 0,
 };
 
 static struct sensor_ops adt7461_chip = {
 	.name = "ADT7461",
 	.manufacturer_id = 0x41,
 	.init = tmp451_init,
-	.read_temp = tmp451_read_temp_nofrac,
+	.read_temp = tmp451_read_temp,
+	.has_fract = 0,
 };
 
 
@@ -152,6 +164,7 @@ static struct sensor_ops nct218_chip = {
 	.manufacturer_id = 0x1a,
 	.init = tmp451_init,
 	.read_temp = nct218_read_temp,
+	.has_fract = 0,
 };
 
 /*

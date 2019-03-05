@@ -34,6 +34,7 @@ struct sensor_ops {
 	uint8_t manufacturer_id;
 	int (*init)(struct sensor *sensor);
 	int (*read_temp)(struct sensor *sensor, struct temp *temp);
+	int has_fract;
 };
 
 struct sensor {
