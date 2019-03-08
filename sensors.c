@@ -34,6 +34,8 @@ local_to_remote(float int_temp)
 enum {
 	TMP451_REG_R_LOCAL_T	= 0x00,
 	TMP451_REG_R_REMOTE_T	= 0x01,
+	TMP451_REG_R_STATUS	= 0x02,
+	  TMP451_OPEN_CIRCUIT	= 0x04,
 	TMP451_REG_R_CONFIG	= 0x03,
 	TMP451_REG_W_CONFIG	= 0x09,
 	  TMP451_CONFIG_RANGE	= 0x04,
@@ -73,8 +75,14 @@ static int
 tmp451_read_temp(struct sensor *sensor, struct temp *temp)
 {
 	int ret;
+	uint8_t status;
 	uint8_t local, remote;
 	uint8_t local_fract, remote_fract;
+
+	/* read sensor status */
+	ret = i2c_read(&sensor->dev, TMP451_REG_R_STATUS, &status);
+	if (ret < 0)
+		return ret;
 
 	/* read temperature registers */
 	ret = i2c_read(&sensor->dev, TMP451_REG_R_LOCAL_T, &local);
@@ -102,8 +110,9 @@ tmp451_read_temp(struct sensor *sensor, struct temp *temp)
 	/* put temperatures together */
 	temp->local = tmp451_make_temp(local, local_fract);
 
-	/* broken-off remote sensor? */
-	if (remote == 0) {
+	/* remote sensor fault? */
+	int open_circuit = status & TMP451_OPEN_CIRCUIT;
+	if (open_circuit || remote == 0) {
 		/* from tmp451 documentation:
 		 *
 		 * SENSOR FAULT
@@ -112,8 +121,19 @@ tmp451_read_temp(struct sensor *sensor, struct temp *temp)
 		 * incorrect diode connection. The TMP451 can also sense an
 		 * open circuit. Short-circuit conditions return a value
 		 * of –64°C.
+		 *
+		 * The detection circuitry consists of a voltage comparator
+		 * that trips when the voltage at D+ exceeds (V+) – 0.3 V
+		 * (typical). The comparator output is continuously checked
+		 * during a conversion. If a fault is detected, then OPEN
+		 * (bit 2) in the status register is set to '1'.
 		 */
-		applog(LOG_NOTICE, "chain %d has no remote temperature, fixing", sensor->dev.chain);
+		if (open_circuit)
+			applog(LOG_NOTICE, "chain %d has disconnected temp. sensor, fixing",
+				sensor->dev.chain);
+		else
+			applog(LOG_NOTICE, "chain %d has no remote temperature, fixing",
+				sensor->dev.chain);
 		temp->remote = local_to_remote(temp->local);
 	} else {
 		temp->remote = tmp451_make_temp(remote, remote_fract);
