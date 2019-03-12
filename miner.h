@@ -1020,6 +1020,8 @@ extern int opt_fan_ctrl;
 extern int opt_fan_ctrl_set;
 extern int opt_fan_dangerous_temp;
 extern int opt_fan_hot_temp;
+extern int opt_disable_sensors, opt_disable_sensors_set;
+extern int opt_disable_remote_sensors, opt_disable_remote_sensors_set;
 extern float opt_overclock;
 
 extern bool opt_worktime;

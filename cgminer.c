@@ -271,6 +271,8 @@ int opt_fan_dangerous_temp = DANGEROUS_TEMP;
 int opt_fan_hot_temp = HOT_TEMP;
 int opt_fan_dangerous_temp_set = 0;
 int opt_fan_hot_temp_set = 0;
+int opt_disable_sensors = 0, opt_disable_sensors_set = 0;
+int opt_disable_remote_sensors = 0, opt_disable_remote_sensors_set = 0;
 
 float opt_overclock = 0;
 int opt_overclock_set = 0;
@@ -1692,6 +1694,17 @@ static struct opt_table opt_config_table[] =
     opt_set_intval, opt_show_intval, &opt_fan_hot_temp,
     "Limit for what is considered a hot temp (in degree celsius) - at which point miner turns fans full ON",
     &opt_fan_hot_temp_set),
+
+    OPT_WITHOUT_ARG_DEF("--disable-sensors",
+    opt_set_bool, &opt_disable_sensors,
+    "Disable temperature sensors (both local and remote)",
+    &opt_disable_sensors_set),
+
+    OPT_WITHOUT_ARG_DEF("--disable-remote-sensors",
+    opt_set_bool, &opt_disable_remote_sensors,
+    "Disable remote temperature sensors",
+    &opt_disable_remote_sensors_set),
+
 
     OPT_WITH_ARG_DEF("--overclock",
     set_float, opt_show_floatval, &opt_overclock,

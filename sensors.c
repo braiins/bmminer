@@ -112,7 +112,11 @@ tmp451_read_temp(struct sensor *sensor, struct temp *temp)
 
 	/* remote sensor fault? */
 	int open_circuit = status & TMP451_OPEN_CIRCUIT;
-	if (open_circuit || remote == 0) {
+	if (opt_disable_remote_sensors || sensor->remote_sensor_disabled) {
+		applog(LOG_NOTICE, "chain %d has disabled remote temp. sensor",
+			sensor->dev.chain);
+		temp->remote = local_to_remote(temp->local);
+	} else if (open_circuit || remote == 0) {
 		/* from tmp451 documentation:
 		 *
 		 * SENSOR FAULT
@@ -128,12 +132,18 @@ tmp451_read_temp(struct sensor *sensor, struct temp *temp)
 		 * during a conversion. If a fault is detected, then OPEN
 		 * (bit 2) in the status register is set to '1'.
 		 */
+		sensor->remote_sensor_errors++;
 		if (open_circuit)
-			applog(LOG_NOTICE, "chain %d has disconnected temp. sensor, fixing",
-				sensor->dev.chain);
+			applog(LOG_NOTICE, "chain %d has disconnected temp. sensor, fixing (so far %d errors)",
+				sensor->dev.chain, sensor->remote_sensor_errors);
 		else
-			applog(LOG_NOTICE, "chain %d has no remote temperature, fixing",
+			applog(LOG_NOTICE, "chain %d has no remote temperature, fixing (so far %d errors)",
+				sensor->dev.chain, sensor->remote_sensor_errors);
+		if (sensor->remote_sensor_errors >= SensorMaxErrors) {
+			applog(LOG_NOTICE, "chain %d has faulty remote temp. sensor, disabling",
 				sensor->dev.chain);
+			sensor->remote_sensor_disabled = 1;
+		}
 		temp->remote = local_to_remote(temp->local);
 	} else {
 		temp->remote = tmp451_make_temp(remote, remote_fract);
@@ -324,6 +334,9 @@ probe_sensors(int chain, int bus, struct sensor *sensors, int max_sensors)
 	for (int i = 0; i < ARRAY_SIZE(probe_chip_addrs); i++) {
 		for (int j = 0; j < ARRAY_SIZE(probe_i2c_addrs); j++) {
 			struct sensor *sensor = &sensors[n];
+
+			/* clear sensor */
+			memset(sensor, 0, sizeof(*sensor));
 
 			/* make device for this sensor */
 			i2c_makedev(&sensor->dev, chain, bus, probe_chip_addrs[i], probe_i2c_addrs[j]);

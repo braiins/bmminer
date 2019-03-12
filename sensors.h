@@ -2,6 +2,11 @@
  * Fake I2C driver
  */
 
+enum {
+	/* arbitrary number */
+	SensorMaxErrors = 8,
+};
+
 struct i2c_dev {
 	int chain, bus, chip_addr;
 	int i2c_addr;
@@ -40,6 +45,8 @@ struct sensor_ops {
 struct sensor {
 	struct i2c_dev dev;
 	struct sensor_ops *ops;
+	int remote_sensor_errors;
+	int remote_sensor_disabled;
 };
 
 int probe_sensors(int chain, int bus, struct sensor *sensors, int max_sensors);

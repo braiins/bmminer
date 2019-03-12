@@ -256,6 +256,7 @@ int chain_n_sensors[BITMAIN_MAX_CHAIN_NUM];
 struct temp chain_sensor_temp[BITMAIN_MAX_CHAIN_NUM][BITMAIN_MAX_SENSORS_PER_CHAIN];
 struct temp chain_max_temp[BITMAIN_MAX_CHAIN_NUM];
 struct temp all_chain_max_temp;
+int all_chain_max_temp_ok;
 
 unsigned char hash_board_id[BITMAIN_MAX_CHAIN_NUM][12];
 
@@ -3252,7 +3253,7 @@ void wait_for_fans(void)
 		float hitemp = MAX(all_chain_max_temp.remote, all_chain_max_temp.local);
 		int duty;
 		mutex_lock(&fancontrol_lock);
-		duty = fancontrol_calculate(&fancontrol, 1, hitemp);
+		duty = fancontrol_calculate(&fancontrol, all_chain_max_temp_ok, hitemp);
 		mutex_unlock(&fancontrol_lock);
 		set_PWM(duty);
 		return;
@@ -7147,12 +7148,13 @@ int i2c_start_dev(struct i2c_dev *i2cdev)
     }
 
 static void
-read_temperature_from_sensors(float *max)
+read_temperature_from_sensors(void)
 {
 	int i, j;
 
 	/* temperature accumulator over all chains */
 	struct temp all_max = ZERO_TEMP;
+	int working_sensors = 0;
 
 	for (i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
 		/* temperature accumulator for this chain */
@@ -7168,6 +7170,8 @@ read_temperature_from_sensors(float *max)
 				/* temperature reading failed, use previous temperature */
 				temp = chain_sensor_temp[i][j];
 				sensor_log("sensors: %d/%d temperature read failed, using previous", i, j);
+			} else {
+				working_sensors++;
 			}
 			/* got temperature */
 			sensor_log("sensors: %d/%d temperature (%.1f,%.1f)", i, j,
@@ -7185,14 +7189,20 @@ read_temperature_from_sensors(float *max)
 		/* store */
 		chain_max_temp[i] = chain_max;
 	}
-
-	/* got temperature */
-	sensor_log("sensors: overall max.temp. (%.1f,%.1f)",
-		all_max.local, all_max.remote);
-	/* store */
-	all_chain_max_temp = all_max;
-	/* overall maximum */
-	*max = MAX(all_max.local, all_max.remote);
+	if (working_sensors == 0) {
+		/* no temperature reading */
+		sensor_log("sensors: no working sensors");
+		all_chain_max_temp = (struct temp){ 0, 0 };
+		all_chain_max_temp_ok = 0;
+	} else {
+		/* got temperature */
+		sensor_log("sensors: overall max.temp. (%.1f,%.1f)",
+			all_max.local, all_max.remote);
+		/* store */
+		all_chain_max_temp = all_max;
+		/* overall maximum */
+		all_chain_max_temp_ok = 1;
+	}
 }
 
 #define OFFSIDE_TOP 125
@@ -7269,8 +7279,8 @@ read_temperature_from_sensors(float *max)
             sprintf(logstr,"Done check_asic_reg\n");
             writeLogFile(logstr);
 
-	    float max_temp = 0;
-            read_temperature_from_sensors(&max_temp);
+	    if (!opt_disable_sensors)
+                read_temperature_from_sensors();
 #if 0
             memset(temp_top,0x00,sizeof(temp_top));
             memset(temp_low,0x00,sizeof(temp_low));
@@ -11042,28 +11052,19 @@ void bitmain_reconfigure_fans(void)
         init_uart_baud();
         cgsleep_ms(10);
 
-        for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
-        {
-            if(dev->chain_exist[i] == 1 && dev->chain_asic_num[i] == CHAIN_ASIC_NUM)
-            {
-                chain_n_sensors[i] = probe_sensors(i, 0, chain_sensor[i], ARRAY_SIZE(chain_sensor[i]));
-                cgsleep_ms(10);
+        if (!opt_disable_sensors) {
+            for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+                if(dev->chain_exist[i] == 1 && dev->chain_asic_num[i] == CHAIN_ASIC_NUM) {
+                    chain_n_sensors[i] = probe_sensors(i, 0, chain_sensor[i], ARRAY_SIZE(chain_sensor[i]));
+                    cgsleep_ms(10);
+                }
+            }
+            for (int i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
+                for (int j = 0; j < chain_n_sensors[i]; j++) {
+                    sensor_init(&chain_sensor[i][j]);
+                }
             }
         }
-
-        for (int i = 0; i < BITMAIN_MAX_CHAIN_NUM; i++) {
-            for (int j = 0; j < chain_n_sensors[i]; j++) {
-                sensor_init(&chain_sensor[i][j]);
-            }
-        }
-#if 0
-        for (;;) {
-		float max;
-		read_temperature_from_sensors(&max);
-		applog(LOG_NOTICE, "max=%f", max);
-        }
-#endif
-
 
 #ifdef T9_18
         for(i=0; i < BITMAIN_MAX_CHAIN_NUM; i++)
