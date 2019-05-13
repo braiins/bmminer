@@ -5448,6 +5448,7 @@ static void mcast()
         }
         else
             applog(LOG_DEBUG, "API mcast request was no good");
+        free(connectaddr);
     }
 
 die:
@@ -5853,6 +5854,8 @@ void api(int api_thr_id)
                             cmdptr = cmd;
                     }
                     while (isjoin && cmdptr);
+                    if (cmdsbuf != NULL)
+                        free(cmdsbuf);
                 }
 
                 if (isjoin)
@@ -5862,6 +5865,7 @@ void api(int api_thr_id)
                     json_decref(json_config);
             }
         }
+        free(connectaddr);
         CLOSESOCKET(c);
     }
 die:
