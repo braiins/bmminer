@@ -140,7 +140,8 @@ fancontrol_calculate(struct fancontrol *fc, int temp_ok, double temp)
 		if (temp >= opt_fan_dangerous_temp) {
 			fanlog(fc, "temperature dangerous, shutting down");
 			fprintf(stderr, "\n\nTemperature DANGEROUS, Shutting Down\n\n");
-			exit(1);
+			quit(1, "Temperature dangerously high (%.1lf deg C, limit is %d)",
+				temp, opt_fan_dangerous_temp);
 		}
 		if (temp >= opt_fan_hot_temp) {
 			fanlog(fc, "temperature very hot, turning on fans");

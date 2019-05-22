@@ -27,10 +27,14 @@ extern bool want_per_device_stats;
 /* global log_level, messages with lower or equal prio are logged */
 extern int opt_log_level;
 
+#define SAVE_LAST_QUIT_FILE "/tmp/cgminer_quit_reason"
+
 #define LOGBUFSIZ 2048
 
 extern void _applog(int prio, const char *str, bool force);
 extern void _simplelog(int prio, const char *str, bool force);
+
+extern void save_last_quit(int status, const char *str);
 
 #define IN_FMT_FFL " in %s %s():%d"
 
@@ -79,6 +83,7 @@ extern void _simplelog(int prio, const char *str, bool force);
     if (fmt) { \
         char tmp42[LOGBUFSIZ]; \
         snprintf(tmp42, sizeof(tmp42), fmt, ##__VA_ARGS__); \
+	save_last_quit(status, tmp42); \
         _applog(LOG_ERR, tmp42, true); \
     } \
     _quit(status); \
@@ -88,6 +93,7 @@ extern void _simplelog(int prio, const char *str, bool force);
     if (fmt) { \
         char tmp42[LOGBUFSIZ]; \
         snprintf(tmp42, sizeof(tmp42), fmt, ##__VA_ARGS__); \
+	save_last_quit(status, tmp42); \
         _applog(LOG_ERR, tmp42, true); \
     } \
     __quit(status, false); \
@@ -98,6 +104,7 @@ extern void _simplelog(int prio, const char *str, bool force);
         char tmp42[LOGBUFSIZ]; \
         snprintf(tmp42, sizeof(tmp42), fmt IN_FMT_FFL, \
                 ##__VA_ARGS__, __FILE__, __func__, __LINE__); \
+	save_last_quit(status, tmp42); \
         _applog(LOG_ERR, tmp42, true); \
     } \
     _quit(status); \
@@ -108,6 +115,7 @@ extern void _simplelog(int prio, const char *str, bool force);
         char tmp42[LOGBUFSIZ]; \
         snprintf(tmp42, sizeof(tmp42), fmt IN_FMT_FFL, \
                 ##__VA_ARGS__, _file, _func, _line); \
+	save_last_quit(status, tmp42); \
         _applog(LOG_ERR, tmp42, true); \
     } \
     _quit(status); \

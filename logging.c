@@ -140,3 +140,15 @@ void _simplelog(int prio, const char *str, bool force)
         my_log_curses(prio, "", str, force);
     }
 }
+
+void save_last_quit(int status, const char *str)
+{
+	FILE *fw;
+
+	fw = fopen(SAVE_LAST_QUIT_FILE, "w");
+	if (fw == NULL)
+		return;
+	fputs(str, fw);
+	fputc('\n', fw);
+	fclose(fw);
+}
