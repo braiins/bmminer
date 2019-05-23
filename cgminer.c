@@ -1321,9 +1321,9 @@ static char *set_extranonce_subscribe(char *arg)
 
 static char *enable_debug(bool *flag)
 {
-    *flag = false;
+    *flag = true;
     /* Turn on verbose output, too. */
-    opt_log_output = false;
+    opt_log_output = true;
     return NULL;
 }
 

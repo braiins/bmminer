@@ -512,7 +512,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
     curl_easy_setopt(curl, CURLOPT_POST, 1);
 
     if (opt_protocol)
-        applog(LOG_DEBUG, "JSON protocol request:\n%s", rpc_req);
+        applog(LOG_INFO, "JSON protocol request:\n%s", rpc_req);
 
     upload_data.buf = rpc_req;
     upload_data.len = strlen(rpc_req);
@@ -629,7 +629,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
         applog(LOG_INFO, "JSON decode failed(%d): %s", err.line, err.text);
 
         if (opt_protocol)
-            applog(LOG_DEBUG, "JSON protocol response:\n%s", (char *)(all_data.buf));
+            applog(LOG_INFO, "JSON protocol response:\n%s", (char *)(all_data.buf));
 
         goto err_out;
     }
@@ -638,7 +638,7 @@ json_t *json_rpc_call(CURL *curl, const char *url,
     {
         char *s = json_dumps(val, JSON_INDENT(3));
 
-        applog(LOG_DEBUG, "JSON protocol response:\n%s", s);
+        applog(LOG_INFO, "JSON protocol response:\n%s", s);
         free(s);
     }
 
@@ -1630,7 +1630,7 @@ static enum send_ret __stratum_send(struct pool *pool, char *s, ssize_t len)
     ssize_t ssent = 0;
 
     if (opt_protocol) {
-        applog(LOG_DEBUG, "SEND: %s", s);
+        applog(LOG_INFO, "SEND: %s", s);
     }
 
     strcat(s, "\n");
@@ -1680,10 +1680,6 @@ static enum send_ret __stratum_send(struct pool *pool, char *s, ssize_t len)
 bool stratum_send(struct pool *pool, char *s, ssize_t len)
 {
     enum send_ret ret = SEND_INACTIVE;
-
-    if (opt_protocol) {
-        applog(LOG_DEBUG, "SEND: %s", s);
-    }
 
     mutex_lock(&pool->stratum_lock);
 
@@ -1883,7 +1879,7 @@ out:
     if (!sret)
         clear_sock(pool);
     else if (opt_protocol)
-        applog(LOG_DEBUG, "RECVD: %s", sret);
+        applog(LOG_INFO, "RECVD: %s", sret);
     return sret;
 }
 
