@@ -3175,10 +3175,13 @@ resend:
     if (recvd) {
         clear_sock(pool);
     }
+    if (opt_multi_version > 1) {
 	/* Attempt to configure stratum protocol feature set first. */
 	if (!configure_stratum_mining(pool)) {
 		goto out;
 	}
+    }
+
 
 	if (recvd) {
         sprintf(s, "{\"id\": %d, \"method\": \"mining.subscribe\", \"params\": []}", swork_id++);
