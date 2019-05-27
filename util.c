@@ -2929,7 +2929,7 @@ static bool setup_stratum_socket(struct pool *pool)
         noblock_socket(sockd);
         if (connect(sockd, p->ai_addr, p->ai_addrlen) == -1)
         {
-            struct timeval tv_timeout = {1, 0};
+            struct timeval tv_timeout = {3, 0};
             int selret;
             fd_set rw;
 
