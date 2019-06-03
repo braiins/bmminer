@@ -12144,14 +12144,14 @@ int main(int argc, char *argv[])
 
         if (!use_curses)
         {
-            early_quit(0, "No servers could be used! Exiting.");
+            early_quit(1, "No servers could be used! Exiting.");
         }
 #ifdef HAVE_CURSES
         touchwin(logwin);
         wrefresh(logwin);
         halfdelay(10);
         if (getch() != ERR)
-            early_quit(0, "No servers could be used! Exiting.");
+            early_quit(1, "No servers could be used! Exiting.");
         cbreak();
 #endif
     };
