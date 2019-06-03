@@ -145,6 +145,17 @@ void save_last_quit(int status, const char *str)
 {
 	FILE *fw;
 
+	/* Do not save reasons for exit with exit status 0.
+	 * This is to not confuse user with messages that look like they mean
+	 * something but they don't, ie.:
+	 * 	"Last quit reason: Shutdown signal received."
+	 * that reminiscences famous "Error: Success" error.
+	 * The question is, should we also delete the quit file if we exit
+	 * on request, not on error?
+	 */
+	if (status == 0)
+		return;
+
 	fw = fopen(SAVE_LAST_QUIT_FILE, "w");
 	if (fw == NULL)
 		return;
